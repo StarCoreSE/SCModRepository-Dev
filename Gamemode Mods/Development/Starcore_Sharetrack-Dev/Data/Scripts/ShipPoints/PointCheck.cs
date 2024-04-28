@@ -13,6 +13,7 @@ using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.ShipPoints.MatchTimer;
 using SENetworkAPI;
+using ShipPoints.Commands;
 using ShipPoints.Data.Scripts.ShipPoints.Networking;
 using VRage.Game;
 using VRage.Game.Components;
@@ -29,6 +30,8 @@ namespace klime.PointCheck
     [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation)]
     public class PointCheck : MySessionComponentBase
     {
+        public static PointCheck I;
+
         public enum ViewState
         {
             None,
@@ -50,7 +53,7 @@ namespace klime.PointCheck
         private const double ViewDistSqr = 306250000;
         public static NetSync<int> ServerMatchState;
         public static int LocalMatchState;
-        private static bool _amTheCaptainNow;
+        public static bool _amTheCaptainNow;
         public static int LocalGameModeSwitch = 3;
         public static int LocalProblemSwitch;
         public static Dictionary<string, int> PointValues = new Dictionary<string, int>();
@@ -149,7 +152,6 @@ namespace klime.PointCheck
         //end visual
         public override void Init(MyObjectBuilder_SessionComponent sessionComponent)
         {
-            MyAPIGateway.Utilities.MessageEntered += MessageEntered;
             MyNetworkHandler.Init();
             MyAPIGateway.Utilities.ShowMessage("ShipPoints v3.2 - Control Zone",
                 "Aim at a grid and press Shift+T to show stats, " +
@@ -195,293 +197,6 @@ namespace klime.PointCheck
         private NetSync<T> CreateNetSync<T>(T defaultValue)
         {
             return new NetSync<T>(this, TransferType.Both, defaultValue, false, false);
-        }
-
-        private void MessageEntered(string messageText, ref bool sendToOthers)
-        {
-            if (messageText.ToLower() == "/shields")
-            {
-                Static.MyNetwork.TransmitToServer(new BasicPacket(5));
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/setmatchtime"))
-                try
-                {
-                    var tempdist = messageText.Split(' ');
-                    MyAPIGateway.Utilities.ShowNotification("Match duration changed to " + tempdist[1] + " minutes.");
-                    Matchtime = int.Parse(tempdist[1]) * 60 * 60;
-                    MatchTimer.I.MatchDurationMinutes = Matchtime / 60d / 60d;
-                    sendToOthers = true;
-                }
-                catch (Exception)
-                {
-                    MyAPIGateway.Utilities.ShowNotification("Win time not changed, try /setmatchtime xxx (in minutes)");
-                }
-
-
-            if (messageText.Contains("/setteams"))
-            {
-                try
-                {
-                    var tempdist = messageText.Split(' ');
-                    Team1.Value = tempdist[1].ToUpper();
-                    Team2.Value = tempdist[2].ToUpper();
-                    Team3.Value = tempdist[3].ToUpper();
-                    //team1_Local = tempdist[1].ToUpper(); team2_Local = tempdist[2].ToUpper(); team3_Local = tempdist[3].ToUpper();
-                    MyAPIGateway.Utilities.ShowNotification("Teams changed to " + tempdist[1] + " vs " + tempdist[2] +
-                                                            " vs " + tempdist[3]); //sendToOthers = true;
-                }
-                catch (Exception)
-                {
-                    MyAPIGateway.Utilities.ShowNotification("Teams not changed, try /setteams abc xyz");
-                }
-
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/sphere"))
-            {
-                try
-                {
-                    SphereVisual = !SphereVisual;
-                    sendToOthers = false;
-                }
-                catch (Exception w)
-                {
-                    {
-                        MyLog.Default.WriteLineAndConsole("Visual update failed: " + w);
-                    }
-                }
-
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/settime"))
-            {
-                try
-                {
-                    var tempdist = messageText.Split(' ');
-                    Wintime = int.Parse(tempdist[1]);
-                    MyAPIGateway.Utilities.ShowNotification("Win time changed to " + Wintime);
-                }
-                catch (Exception)
-                {
-                    MyAPIGateway.Utilities.ShowNotification("Win time not changed, try /settime xxx (in seconds)");
-                }
-
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/setdelay"))
-            {
-                try
-                {
-                    var tempdist = messageText.Split(' ');
-                    Delaytime = int.Parse(tempdist[1]);
-                    MyAPIGateway.Utilities.ShowNotification("Delay time changed to " + Delaytime + " minutes.");
-                    Delaytime = Delaytime * 60 * 60;
-                }
-                catch (Exception)
-                {
-                    MyAPIGateway.Utilities.ShowNotification("Delay time not changed, try /setdelay x (in minutes)");
-                }
-
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/setdecay"))
-            {
-                try
-                {
-                    var tempdist = messageText.Split(' ');
-                    Decaytime = int.Parse(tempdist[1]);
-                    MyAPIGateway.Utilities.ShowNotification("Decay time changed to " + Decaytime);
-                    Decaytime = Decaytime * 60;
-                }
-                catch (Exception)
-                {
-                    MyAPIGateway.Utilities.ShowNotification("Decay time not changed, try /setdecay xxx (in seconds)");
-                }
-
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/start"))
-            {
-                Static.MyNetwork.TransmitToServer(new BasicPacket(6), true, true);
-                _amTheCaptainNow = true;
-                Team1Tickets.Value = MatchTickets;
-                Team2Tickets.Value = MatchTickets;
-                //Team3Tickets.Value = MatchTickets;
-                LocalMatchState = 1;
-                MatchTimer.I.Start(Matchtime / 60d / 60d);
-                MyAPIGateway.Utilities.ShowMessage("GM", "You are the captain now.");
-                MyAPIGateway.Utilities.ShowNotification("HEY DUMBASS, IS DAMAGE ON?", 10000, "Red");
-            }
-
-            if (messageText.Contains("/end"))
-            {
-                Static.MyNetwork.TransmitToServer(new BasicPacket(8), true, true);
-                _amTheCaptainNow = false;
-                Team1Tickets.Value = MatchTickets;
-                Team2Tickets.Value = MatchTickets;
-                Team3Tickets.Value = MatchTickets;
-                LocalMatchState = 0;
-                CaptainCapTimerZ3T1.Value = 0;
-                CaptainCapTimerZ3T2.Value = 0;
-                CaptainCapTimerZ3T3.Value = 0;
-                CaptainCapTimerZ2T1.Value = 0;
-                CaptainCapTimerZ2T2.Value = 0;
-                CaptainCapTimerZ2T3.Value = 0;
-                CaptainCapTimerZ1T1.Value = 0;
-                CaptainCapTimerZ1T2.Value = 0;
-                CaptainCapTimerZ1T3.Value = 0;
-                MatchTimer.I.Stop();
-                MyAPIGateway.Utilities.ShowMessage("GM", "Match Ended.");
-            }
-
-            if (messageText.Contains("/takeover"))
-            {
-                _amTheCaptainNow = true;
-                MyAPIGateway.Utilities.ShowMessage("GM", "You are the captain now.");
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/giveup"))
-            {
-                _amTheCaptainNow = false;
-                MyAPIGateway.Utilities.ShowMessage("GM", "You are not the captain now.");
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/t1t"))
-            {
-                try
-                {
-                    var temptickets1 = messageText.Split(' ');
-                    //MyAPIGateway.Utilities.ShowNotification("Match duration changed to " + temptickets[1].ToString() + " minutes.");
-                    Team1Tickets.Value = int.Parse(temptickets1[1]);
-                    //sendToOthers = true;
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex);
-                }
-
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/t2t"))
-            {
-                try
-                {
-                    var temptickets2 = messageText.Split(' ');
-                    //MyAPIGateway.Utilities.ShowNotification("Match duration changed to " + temptickets[1].ToString() + " minutes.");
-                    Team2Tickets.Value = int.Parse(temptickets2[1]);
-                    //sendToOthers = true;
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex);
-                }
-
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/t3t"))
-            {
-                try
-                {
-                    var temptickets3 = messageText.Split(' ');
-                    //MyAPIGateway.Utilities.ShowNotification("Match duration changed to " + temptickets[1].ToString() + " minutes.");
-                    Team3Tickets.Value = int.Parse(temptickets3[1]);
-                    //sendToOthers = true;
-                }
-                catch (Exception)
-                {
-                }
-
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/threeteams"))
-            {
-                MyAPIGateway.Utilities.ShowMessage("GM", "Teams set to three.");
-                ThreeTeams.Value = 1;
-                Team3Tickets.Value = MatchTickets;
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/twoteams"))
-            {
-                MyAPIGateway.Utilities.ShowMessage("GM", "Teams set to two.");
-                ThreeTeams.Value = 0;
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/crazycap"))
-            {
-                MyAPIGateway.Utilities.ShowMessage("GM", "Capture zones set to crazy.");
-                GameModeSwitch.Value = 5;
-                LocalGameModeSwitch = 5;
-                Static.MyNetwork.TransmitToServer(new BasicPacket(16), true, true);
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/nocap"))
-            {
-                MyAPIGateway.Utilities.ShowMessage("GM", "Capture zones set to no.");
-                GameModeSwitch.Value = 4;
-                LocalGameModeSwitch = 4;
-                Static.MyNetwork.TransmitToServer(new BasicPacket(15), true, true);
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/onecap"))
-            {
-                MyAPIGateway.Utilities.ShowMessage("GM", "Capture zones set to one.");
-                GameModeSwitch.Value = 1;
-                LocalGameModeSwitch = 1;
-                Static.MyNetwork.TransmitToServer(new BasicPacket(12), true, true);
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/twocap"))
-            {
-                MyAPIGateway.Utilities.ShowMessage("GM", "Capture zones set to two.");
-                GameModeSwitch.Value = 2;
-                LocalGameModeSwitch = 2;
-                Static.MyNetwork.TransmitToServer(new BasicPacket(13), true, true);
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/threecap"))
-            {
-                MyAPIGateway.Utilities.ShowMessage("GM", "Capture zones set to three.");
-                GameModeSwitch.Value = 3;
-                LocalGameModeSwitch = 3;
-                Static.MyNetwork.TransmitToServer(new BasicPacket(14), true, true);
-                sendToOthers = false;
-            }
-
-            if (messageText.Contains("/problem"))
-            {
-                MyAPIGateway.Utilities.ShowNotification("A problem has been reported.", 10000);
-                sendToOthers = true;
-
-                LocalProblemSwitch = 1;
-                Static.MyNetwork.TransmitToServer(new BasicPacket(17), true, true);
-            }
-
-            if (messageText.Contains("/fixed"))
-            {
-                MyAPIGateway.Utilities.ShowNotification("Fixed :^)", 10000);
-                sendToOthers = true;
-
-                LocalProblemSwitch = 0;
-                Static.MyNetwork.TransmitToServer(new BasicPacket(18), true, true);
-            }
         }
 
         public static void Begin()
@@ -634,7 +349,9 @@ namespace klime.PointCheck
 
         public override void LoadData()
         {
+            I = this;
             MyAPIGateway.Utilities.RegisterMessageHandler(2546247, AddPointValues);
+            CommandHandler.Init();
             //Log.Init($"{ModContext.ModName}.log");
         }
 
@@ -1556,6 +1273,8 @@ namespace klime.PointCheck
         protected override void UnloadData()
         {
             base.UnloadData();
+            CommandHandler.Close();
+
             if (_textApi != null) _textApi.Unload();
             if (WcApi != null) WcApi.Unload();
             if (ShApi != null) ShApi.Unload();
@@ -1575,9 +1294,10 @@ namespace klime.PointCheck
                 else
                     Data[x].DisposeHud();
 
-            MyAPIGateway.Utilities.MessageEntered -= MessageEntered;
             Static?.Dispose();
             MyAPIGateway.Utilities.UnregisterMessageHandler(2546247, AddPointValues);
+
+            I = null;
         }
     }
 
