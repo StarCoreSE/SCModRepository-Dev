@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.Data.Scripts.ShipPoints;
+using klime.PointCheck;
 
 namespace Scripts.ShipPoints.HeartNetwork.Custom
 {
@@ -33,12 +34,19 @@ namespace Scripts.ShipPoints.HeartNetwork.Custom
 
         public override void Received(ulong SenderSteamId)
         {
-            if (TrackedGrids != null)
+            if (TrackedGrids == null)
+            {
+                Log.Info("Null TrackedGrids!");
+                TrackedGrids = Array.Empty<long>();
+            }
+
+            if (IsAddingReference == null)
                 TrackingManager.I.BulkTrackGrids(TrackedGrids);
-            else if (IsAddingReference ?? false)
+            else if ((bool) IsAddingReference)
                 TrackingManager.I.TrackGrid(TrackedGrids[0], false);
             else
                 TrackingManager.I.UntrackGrid(TrackedGrids[0], false);
+            Log.Info("Recieve track request! " + (IsAddingReference == null));
         }
     }
 }

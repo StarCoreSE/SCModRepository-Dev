@@ -494,9 +494,6 @@ namespace klime.PointCheck
             if (MyAPIGateway.Input.IsNewKeyPressed(MyKeys.T))
                 _hudPointsList?.CycleViewState();
 
-            if (MyAPIGateway.Session.PromoteLevel < MyPromoteLevel.Moderator)
-                return;
-
             foreach (var pair in _keyAndActionPairs)
                 if (MyAPIGateway.Input.IsNewKeyPressed(pair.Key))
                     pair.Value.Invoke();
