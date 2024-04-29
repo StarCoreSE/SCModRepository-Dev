@@ -22,6 +22,7 @@ namespace Scripts.ShipPoints.HeartNetwork
         public static Type[] Types = new Type[]
         {
             typeof(PacketBase),
+            typeof(TrackingSyncPacket),
         };
     }
 }

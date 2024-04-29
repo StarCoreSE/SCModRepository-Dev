@@ -30,6 +30,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
 
         public void BulkTrackGrids(long[] gridIds)
         {
+            Log.Info("Recive bulk track request!");
             List<long> gridIds_List = new List<long>(gridIds);
             foreach (var grid in AllGrids)
             {
@@ -41,7 +42,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
                 UntrackGrid(grid, false);
             }
 
-            foreach (long gridId in gridIds)
+            foreach (long gridId in gridIds_List)
             {
                 TrackGrid(gridId, false);
             }
@@ -51,6 +52,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
         {
             if (!AllGrids.Contains(grid))
                 return;
+            Log.Info("Send track request!");
             ShipTracker tracker = new ShipTracker(grid);
             TrackedGrids.Add(grid, tracker);
             tracker.CreateHud();
@@ -60,8 +62,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
 
             if (MyAPIGateway.Session.IsServer)
             {
-                TrackingSyncPacket packet = new TrackingSyncPacket(GetGridIds());
-                HeartNetwork.I.SendToEveryone(packet);
+                ServerDoSync();
             }
             else
             {
@@ -130,6 +131,10 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
 
         private TrackingManager()
         {
+            HashSet<IMyEntity> entities = new HashSet<IMyEntity>();
+            MyAPIGateway.Entities.GetEntities(entities);
+            foreach (var entity in entities)
+                OnEntityAdd(entity);
             MyAPIGateway.Entities.OnEntityAdd += OnEntityAdd;
             MyAPIGateway.Entities.OnEntityRemove += OnEntityRemove;
         }
