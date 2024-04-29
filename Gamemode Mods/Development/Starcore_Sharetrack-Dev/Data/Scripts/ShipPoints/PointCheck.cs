@@ -9,6 +9,7 @@ using Math0424.Networking;
 using Math0424.ShipPoints;
 using RelativeTopSpeed;
 using Sandbox.Definitions;
+using Sandbox.Engine.Physics;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.ShipPoints.MatchTimer;
@@ -690,12 +691,11 @@ namespace klime.PointCheck
         public static IMyCubeGrid RaycastGridFromCamera()
         {
             var camMat = MyAPIGateway.Session.Camera.WorldMatrix;
-            var hits = new List<MyLineSegmentOverlapResult<MyEntity>>();
-            var ray = new LineD(camMat.Translation, camMat.Translation + camMat.Forward * 500);
-            MyGamePruningStructure.GetTopmostEntitiesOverlappingRay(ref ray, hits);
+            var hits = new List<IHitInfo>();
+            MyAPIGateway.Physics.CastRay(camMat.Translation, camMat.Translation + camMat.Forward * 500, hits);
             foreach (var hit in hits)
             {
-                var grid = hit.Element as IMyCubeGrid;
+                var grid = hit.HitEntity as IMyCubeGrid;
 
                 if (grid?.Physics != null)
                     return grid;
