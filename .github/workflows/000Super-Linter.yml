@@ -1,15 +1,17 @@
 ---
-name: Lint
+name: LINT YOURSELF
 
-on:  # yamllint disable-line rule:truthy
-  push: null
-  pull_request: null
+on:
+  push:
+    branches-ignore: [master, main]
+  pull_request:
+    branches: [master, main]
 
 permissions: { }
 
 jobs:
   build:
-    name: Lint
+    name: Lint Thyself
     runs-on: ubuntu-latest
 
     permissions:
@@ -31,4 +33,6 @@ jobs:
         env:
           # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_ALL_CODEBASE: true
+          IGNORE_GITIGNORED_FILES: true
 ...
