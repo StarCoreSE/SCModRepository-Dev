@@ -4,6 +4,7 @@ using klime.PointCheck;
 using Math0424.ShipPoints;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
+using SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.Data.Scripts.ShipPoints;
 using VRage.Game.ModAPI;
 using VRage.Utils;
 using static Math0424.Networking.MyEasyNetworkManager;
@@ -43,14 +44,7 @@ namespace Math0424.Networking
             if (e.PacketId == 45) // SyncRequestPacket
                 if (MyAPIGateway.Multiplayer.IsServer)
                 {
-                    var playerId = e.SenderId;
-                    foreach (var ship in PointCheck.Data.Values)
-                    {
-                        MyLog.Default.WriteLineAndConsole("Auto-syncing ship ID " + ship.GridId);
-                        //PointCheck.Sending[ship.GridID].Add(e.SenderId);
-                        var packet = new PacketGridData { Id = ship.GridId, Tracked = ship, Value = 1 };
-                        Static.MyNetwork.TransmitToPlayer(packet, e.SenderId);
-                    }
+                    TrackingManager.I.ServerDoSync();
                 }
 
             if (e.PacketId == 1)
@@ -89,55 +83,12 @@ namespace Math0424.Networking
 
                             foreach (var p in AllPlayers) PointCheck.Sending[packet.Id].Add(p);
                         }
-                        else if (packet.Value == 2) //remove
-                        {
-                            if (PointCheck.Sending.ContainsKey(packet.Id))
-                            {
-                                PointCheck.Sending[packet.Id].Remove(e.SenderId);
 
-                                foreach (var p in AllPlayers) PointCheck.Sending[packet.Id].Remove(p);
-
-                                //end
-
-
-                                if (PointCheck.Sending[packet.Id].Count == 0)
-                                {
-                                    PointCheck.Sending.Remove(packet.Id);
-
-                                    if (PointCheck.Sending.Count == 0)
-                                    {
-                                        PointCheck.Data[packet.Id].DisposeHud();
-                                        PointCheck.Data.Remove(packet.Id);
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
                 else
                 {
-                    //Inject
-                    if (packet.Value == 1 && !PointCheck.Tracking.Contains(packet.Id))
-                    {
-                        PointCheck.Tracking.Add(packet.Id);
-                        PointCheck.Data[packet.Id].CreateHud();
-                    }
-                    else if (packet.Value == 2 && PointCheck.Tracking.Contains(packet.Id))
-                    {
-                        PointCheck.Tracking.Remove(packet.Id);
-                    }
-                    //end
 
-                    packet.Tracked.CreateHud();
-                    if (PointCheck.Data.ContainsKey(packet.Id))
-                    {
-                        PointCheck.Data[packet.Id].DisposeHud();
-                        PointCheck.Data[packet.Id] = packet.Tracked;
-                    }
-                    else
-                    {
-                        PointCheck.Data.Add(packet.Id, packet.Tracked);
-                    }
                 }
             }
 

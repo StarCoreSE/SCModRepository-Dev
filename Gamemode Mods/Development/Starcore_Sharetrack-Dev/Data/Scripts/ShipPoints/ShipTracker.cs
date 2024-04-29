@@ -7,6 +7,7 @@ using ProtoBuf;
 using Sandbox.Definitions;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
+using SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.Data.Scripts.ShipPoints;
 using SpaceEngineers.Game.ModAPI;
 using VRage.Game;
 using VRage.Game.ModAPI;
@@ -94,7 +95,7 @@ namespace klime.PointCheck
             if (MyAPIGateway.Session.IsServer)
             {
                 PointCheck.Sending.Remove(e.EntityId);
-                PointCheck.Data.Remove(e.EntityId);
+                TrackingManager.I.TrackedGrids.Remove(Grid);
                 DisposeHud();
             }
 

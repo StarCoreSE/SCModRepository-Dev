@@ -20,8 +20,6 @@ namespace ShipPoints.Commands
         {
             MyNetworkHandler.Static.MyNetwork.TransmitToServer(new BasicPacket(6), true, true);
             PointCheck.AmTheCaptainNow = true;
-            PointCheck.I.Team1Tickets.Value = PointCheck.MatchTickets;
-            PointCheck.I.Team2Tickets.Value = PointCheck.MatchTickets;
             PointCheck.LocalMatchState = 1;
             MatchTimer.I.Start();
             MyAPIGateway.Utilities.ShowMessage("GM", "You are the captain now.");
@@ -32,9 +30,6 @@ namespace ShipPoints.Commands
         {
             MyNetworkHandler.Static.MyNetwork.TransmitToServer(new BasicPacket(8), true, true);
             PointCheck.AmTheCaptainNow = false;
-            PointCheck.I.Team1Tickets.Value = PointCheck.MatchTickets;
-            PointCheck.I.Team2Tickets.Value = PointCheck.MatchTickets;
-            PointCheck.I.Team3Tickets.Value = PointCheck.MatchTickets;
             PointCheck.LocalMatchState = 0;
             MatchTimer.I.Stop();
             MyAPIGateway.Utilities.ShowMessage("GM", "Match Ended.");
@@ -127,32 +122,6 @@ namespace ShipPoints.Commands
             }
         }
 
-        public static void SetTeamTickets(string[] args)
-        {
-            try
-            {
-                switch (args[1].ToLower())
-                {
-                    case "1":
-                        PointCheck.I.Team1Tickets.Value = int.Parse(args[2]);
-                        break;
-                    case "2":
-                        PointCheck.I.Team2Tickets.Value = int.Parse(args[2]);
-                        break;
-                    case "3":
-                        PointCheck.I.Team3Tickets.Value = int.Parse(args[2]);
-                        break;
-                    default:
-                        MyAPIGateway.Utilities.ShowMessage("ShareTrack", "Invalid team (use 1, 2, or 3).");
-                        break;
-                }
-            }
-            catch (Exception)
-            {
-                MyAPIGateway.Utilities.ShowMessage("ShareTrack", "Invalid tickets value.");
-            }
-        }
-
         public static void SetTwoTeams(string[] args)
         {
             MyAPIGateway.Utilities.ShowMessage("GM", "Teams set to two.");
@@ -163,7 +132,6 @@ namespace ShipPoints.Commands
         {
             MyAPIGateway.Utilities.ShowMessage("GM", "Teams set to three.");
             PointCheck.I.ThreeTeams.Value = 1;
-            PointCheck.I.Team3Tickets.Value = PointCheck.MatchTickets;
         }
 
         #endregion

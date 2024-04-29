@@ -69,11 +69,6 @@ namespace ShipPoints.Commands
                 "Sets the current decay time to [arg1] in seconds.",
                 CommandMethods.SetDecay
             ),
-            ["settickets"] = new Command(
-                "ShareTrack.Match.Config",
-                "Assigns team [arg1, either 1 2 or 3] [arg2] tickets.",
-                CommandMethods.SetTeamTickets
-                ),
             ["twoteams"] = new Command(
                 "ShareTrack.Match.Config",
                 "Sets team count to two.",

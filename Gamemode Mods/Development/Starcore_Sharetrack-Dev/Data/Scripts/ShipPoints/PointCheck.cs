@@ -29,8 +29,7 @@ using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 
 namespace klime.PointCheck
 {
-    [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation)]
-    public class PointCheck : MySessionComponentBase
+    public class PointCheck
     {
         public static PointCheck I;
 
@@ -40,9 +39,6 @@ namespace klime.PointCheck
             ItsOver
         }
 
-        public const ushort ComId = 42511;
-        public const string Keyword = "/debug";
-        public const string DisplayName = "Debug";
         public static NetSync<int> ServerMatchState;
         public static int LocalMatchState;
         public static bool AmTheCaptainNow;
@@ -50,7 +46,6 @@ namespace klime.PointCheck
         public static Dictionary<string, int> PointValues = new Dictionary<string, int>();
 
         public static Dictionary<long, List<ulong>> Sending = new Dictionary<long, List<ulong>>();
-        public static Dictionary<long, ShipTracker> Data = new Dictionary<long, ShipTracker>();
         public static HashSet<long> Tracking = new HashSet<long>();
         private static readonly Dictionary<long, IMyPlayer> AllPlayers = new Dictionary<long, IMyPlayer>();
         private static readonly List<IMyPlayer> ListPlayers = new List<IMyPlayer>();
@@ -66,7 +61,6 @@ namespace klime.PointCheck
         public static int Viewstat;
         public static int Decaytime = 180;
         public static int Delaytime = 60; //debug
-        public static int MatchTickets = 1500;
 
 
         private HashSet<IMyEntity> _managedEntities = new HashSet<IMyEntity>();
@@ -91,11 +85,8 @@ namespace klime.PointCheck
         //Old cap
         public bool SphereVisual = true;
         public NetSync<string> Team1;
-        public NetSync<int> Team1Tickets;
         public NetSync<string> Team2;
-        public NetSync<int> Team2Tickets;
         public NetSync<string> Team3;
-        public NetSync<int> Team3Tickets;
 
 
         public NetSync<int> ThreeTeams;
@@ -111,24 +102,223 @@ namespace klime.PointCheck
         private HudPointsList _hudPointsList;
 
 
-        public override void Init(MyObjectBuilder_SessionComponent sessionComponent)
+        #region Public Methods
+
+        public void Init()
         {
-            MyNetworkHandler.Init();
+            I = this;
+
             MyAPIGateway.Utilities.ShowMessage("ShipPoints v3.2 - Control Zone",
                 "Aim at a grid and press Shift+T to show stats, " +
                 "Shift+M to track a grid, Shift+J to cycle nametag style. ");
 
-            if (!NetworkApi.IsInitialized) NetworkApi.Init(ComId, DisplayName, Keyword);
-
             InitializeNetSyncVariables();
+            MyAPIGateway.Utilities.RegisterMessageHandler(2546247, AddPointValues);
+
+            // Check if the current instance is not a dedicated server
+            if (!MyAPIGateway.Utilities.IsDedicated)
+                // Initialize the sphere entities
+                // Initialize the text_api with the HUDRegistered callback
+                TextHudApi = new HudAPIv2(HudRegistered);
+
+            // Initialize the WC_api and load it if it's not null
+
+            WcApi = new WcApi();
+            WcApi?.Load();
+
+            // Initialize the SH_api and load it if it's not null
+            ShApi = new ShieldApi();
+            ShApi?.Load();
+
+            // Initialize the RTS_api and load it if it's not null
+            RtsApi = new RtsApi();
+            RtsApi?.Load();
         }
+
+        public void Close()
+        {
+            Log.Info("Start PointCheck.UnloadData()");
+
+            TextHudApi?.Unload();
+            WcApi?.Unload();
+            ShApi?.Unload();
+            if (PointValues != null)
+            {
+                PointValues.Clear();
+                Sending.Clear();
+                AllPlayers.Clear();
+                ListPlayers.Clear();
+            }
+
+            MyAPIGateway.Utilities.UnregisterMessageHandler(2546247, AddPointValues);
+
+            I = null;
+        }
+
+        public void UpdateAfterSimulation()
+        {
+            // Send request to server for tracked grids. Why is it in here? so that integretymessage is exist.
+            if (_doClientRequest && !MyAPIGateway.Session.IsServer)
+            {
+                Static.MyNetwork.TransmitToServer(new SyncRequestPacket(), false);
+                _doClientRequest = false;
+            }
+
+            if (MatchTimer.I.Ticks >= 144000)
+            {
+                MatchTimer.I.Ticks = 0;
+            }
+
+            try
+            {
+                if (!MyAPIGateway.Utilities.IsDedicated && Broadcaststat)
+                {
+                    var tick100 = MatchTimer.I.Ticks % 100 == 0;
+                    if (MatchTimer.I.Ticks - _fastStart < 300 || tick100)
+                    {
+                        _fastStart = MatchTimer.I.Ticks;
+                        if (_joinInit == false)
+                        {
+                            Static.MyNetwork.TransmitToServer(new BasicPacket(7), true, true);
+                            ServerMatchState.Fetch();
+                            Team1.Fetch();
+                            Team2.Fetch();
+                            Team3.Fetch();
+                            ServerMatchState.Fetch();
+                            ThreeTeams.Fetch();
+                            _joinInit = true;
+                        }
+                    }
+                }
+
+                if (!MyAPIGateway.Utilities.IsDedicated && MatchTimer.I.Ticks % 60 == 0)
+                {
+                    if (ServerMatchState.Value == 1 && Broadcaststat == false) Broadcaststat = true;
+                    if (!MyAPIGateway.Utilities.IsDedicated && AmTheCaptainNow)
+                        ServerMatchState.Value = LocalMatchState;
+                    else if (!MyAPIGateway.Utilities.IsDedicated && !AmTheCaptainNow)
+                        LocalMatchState = ServerMatchState.Value;
+                }
+
+                if (Broadcaststat && MatchTimer.I.Ticks % 60 == 0)
+                    if (AmTheCaptainNow && ServerMatchState.Value != 1)
+                        ServerMatchState.Value = 1;
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Exception in UpdateAfterSimulation TryCatch 01: {e}");
+            }
+
+            try
+            {
+                if (MatchTimer.I.Ticks % 60 == 0)
+                {
+                    AllPlayers.Clear();
+                    MyAPIGateway.Multiplayer.Players.GetPlayers(ListPlayers, delegate (IMyPlayer p)
+                    {
+                        AllPlayers.Add(p.IdentityId, p);
+                        return false;
+                    }
+                    );
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Exception in UpdateAfterSimulation TryCatch 02: {e}");
+            }
+
+            try
+            {
+                if (MatchTimer.I.Ticks % 60 == 0 && Broadcaststat)
+                {
+                    _count++;
+                    if (_count - _fastStart < 300 || _count % 100 == 0)
+                    {
+                        _managedEntities.Clear();
+                        MyAPIGateway.Entities.GetEntities(_managedEntities, entity => entity is IMyCubeGrid);
+                        foreach (var entity in _managedEntities)
+                        {
+                            var grid = entity as MyCubeGrid;
+                            if ((grid == null || !grid.HasBlockWithSubtypeId("LargeFlightMovement")) &&
+                                !grid.HasBlockWithSubtypeId("RivalAIRemoteControlLarge"))
+                                continue;
+
+                            var entityId = grid.EntityId;
+                            if (!Tracking.Contains(entityId))
+                            {
+                                var packet = new PacketGridData
+                                { Id = entityId, Value = (byte)(Tracking.Contains(entityId) ? 2 : 1) }
+                                    ;
+                                Static.MyNetwork.TransmitToServer(packet);
+                                if (packet.Value == 1)
+                                {
+                                    MyAPIGateway.Utilities.ShowNotification("ShipTracker: Added grid to tracker");
+                                    Tracking.Add(entityId);
+                                    if (!IntegretyMessage.Visible) IntegretyMessage.Visible = true;
+                                }
+                                else
+                                {
+                                    MyAPIGateway.Utilities.ShowNotification(
+                                        "ShipTracker: Removed grid from tracker");
+                                    Tracking.Remove(entityId);
+                                }
+                            }
+
+                            _fastStart = _count;
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Exception in UpdateAfterSimulation TryCatch 03: {e}");
+            }
+        }
+
+        public void Draw()
+        {
+            //if you are the server do nothing here
+            if (MyAPIGateway.Utilities.IsDedicated || !TextHudApi.Heartbeat)
+                return;
+            try
+            {
+                if (MyAPIGateway.Session?.Camera != null && MyAPIGateway.Session.CameraController != null && !MyAPIGateway.Gui.ChatEntryVisible &&
+                    !MyAPIGateway.Gui.IsCursorVisible && MyAPIGateway.Gui.GetCurrentScreen == MyTerminalPageEnum.None)
+                {
+                    HandleKeyInputs();
+                }
+
+                foreach (var tracker in TrackingManager.I.TrackedGrids.Values)
+                    tracker.UpdateHud();
+
+                Problemmessage.Message.Clear();
+                switch ((ProblemReportState)LocalProblemSwitch)
+                {
+                    case ProblemReportState.ItsOver:
+                        const string tempText = "<color=Red>" + "A PROBLEM HAS BEEN REPORTED," + "\n" +
+                                                "CHECK WITH BOTH TEAMS AND THEN TYPE '/fixed' TO CLEAR THIS MESSAGE";
+                        Problemmessage.Message.Append(tempText);
+                        Problemmessage.Visible = true;
+                        break;
+                    case ProblemReportState.ThisIsFine:
+                        Problemmessage.Visible = false;
+                        break;
+                }
+
+                _hudPointsList?.UpdateDraw();
+
+                UpdateTrackingData();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Exception in Draw: {e}");
+            }
+        }
+
+        #endregion
 
         private void InitializeNetSyncVariables()
         {
-            Team1Tickets = CreateNetSync(0);
-            Team2Tickets = CreateNetSync(0);
-            Team3Tickets = CreateNetSync(0);
-
             Team1 = CreateNetSync("RED");
             Team2 = CreateNetSync("BLU");
             Team3 = CreateNetSync("NEU");
@@ -142,7 +332,7 @@ namespace klime.PointCheck
 
         private NetSync<T> CreateNetSync<T>(T defaultValue)
         {
-            return new NetSync<T>(this, TransferType.Both, defaultValue, false, false);
+            return new NetSync<T>(MasterSession.I, TransferType.Both, defaultValue, false, false);
         }
 
         public static void Begin()
@@ -222,36 +412,6 @@ namespace klime.PointCheck
             }
         }
 
-        public override void LoadData()
-        {
-            I = this;
-            MyAPIGateway.Utilities.RegisterMessageHandler(2546247, AddPointValues);
-            CommandHandler.Init();
-            //Log.Init($"{ModContext.ModName}.log");
-        }
-
-        public override void BeforeStart()
-        {
-            // Check if the current instance is not a dedicated server
-            if (!MyAPIGateway.Utilities.IsDedicated)
-                // Initialize the sphere entities
-                // Initialize the text_api with the HUDRegistered callback
-                TextHudApi = new HudAPIv2(HudRegistered);
-
-            // Initialize the WC_api and load it if it's not null
-
-            WcApi = new WcApi();
-            WcApi?.Load();
-
-            // Initialize the SH_api and load it if it's not null
-            ShApi = new ShieldApi();
-            ShApi?.Load();
-
-            // Initialize the RTS_api and load it if it's not null
-            RtsApi = new RtsApi();
-            RtsApi?.Load();
-        }
-
         private void HudRegistered()
         {
             _hudPointsList = new HudPointsList();
@@ -283,202 +443,6 @@ namespace klime.PointCheck
             };
         }
 
-        public override void UpdateAfterSimulation()
-        {
-            // Send request to server for tracked grids. Why is it in here? so that integretymessage is exist.
-            if (_doClientRequest && !MyAPIGateway.Session.IsServer)
-            {
-                Static.MyNetwork.TransmitToServer(new SyncRequestPacket(), false);
-                _doClientRequest = false;
-            }
-
-            if (MatchTimer.I.Ticks >= 144000)
-            {
-                MatchTimer.I.Ticks = 0;
-            }
-
-            try
-            {
-                if (!MyAPIGateway.Utilities.IsDedicated && Broadcaststat)
-                {
-                    var tick100 = MatchTimer.I.Ticks % 100 == 0;
-                    if (MatchTimer.I.Ticks - _fastStart < 300 || tick100)
-                    {
-                        _fastStart = MatchTimer.I.Ticks;
-                        if (_joinInit == false)
-                        {
-                            Static.MyNetwork.TransmitToServer(new BasicPacket(7), true, true);
-                            ServerMatchState.Fetch();
-                            Team1.Fetch();
-                            Team2.Fetch();
-                            Team3.Fetch();
-                            ServerMatchState.Fetch();
-                            Team1Tickets.Fetch();
-                            Team2Tickets.Fetch();
-                            Team3Tickets.Fetch();
-                            ThreeTeams.Fetch();
-                            _joinInit = true;
-                        }
-                    }
-                }
-
-                if (!MyAPIGateway.Utilities.IsDedicated && MatchTimer.I.Ticks % 60 == 0)
-                {
-                    if (ServerMatchState.Value == 1 && Broadcaststat == false) Broadcaststat = true;
-                    if (!MyAPIGateway.Utilities.IsDedicated && AmTheCaptainNow)
-                        ServerMatchState.Value = LocalMatchState;
-                    else if (!MyAPIGateway.Utilities.IsDedicated && !AmTheCaptainNow)
-                        LocalMatchState = ServerMatchState.Value;
-                }
-
-                if (Broadcaststat && MatchTimer.I.Ticks % 60 == 0)
-                    if (AmTheCaptainNow && ServerMatchState.Value != 1)
-                        ServerMatchState.Value = 1;
-            }
-            catch (Exception e)
-            {
-                Log.Error($"Exception in UpdateAfterSimulation TryCatch 01: {e}");
-            }
-
-            try
-            {
-                if (MatchTimer.I.Ticks % 60 == 0)
-                {
-                    AllPlayers.Clear();
-                    MyAPIGateway.Multiplayer.Players.GetPlayers(ListPlayers, delegate(IMyPlayer p)
-                        {
-                            AllPlayers.Add(p.IdentityId, p);
-                            return false;
-                        }
-                    );
-                    if (MyAPIGateway.Session.IsServer)
-                        foreach (var x in Sending.Keys)
-                        {
-                            ShipTracker shipTracker;
-                            if (!Data.TryGetValue(x, out shipTracker))
-                            {
-                                var entity = MyEntities.GetEntityById(x) as IMyCubeGrid;
-                                if (entity?.Physics != null)
-                                {
-                                    shipTracker = new ShipTracker(entity);
-                                    Data.Add(x, shipTracker);
-                                    if (!MyAPIGateway.Utilities.IsDedicated) shipTracker.CreateHud();
-                                }
-                            }
-                            else
-                            {
-                                shipTracker.Update();
-                            }
-
-                            if (shipTracker != null)
-                                foreach (var p in Sending[x])
-                                {
-                                    var packet = new PacketGridData { Id = x, Tracked = shipTracker }
-                                        ;
-                                    Static.MyNetwork.TransmitToPlayer(packet, p);
-                                }
-                        }
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error($"Exception in UpdateAfterSimulation TryCatch 02: {e}");
-            }
-
-            try
-            {
-                if (MatchTimer.I.Ticks % 60 == 0 && Broadcaststat)
-                {
-                    _count++;
-                    if (_count - _fastStart < 300 || _count % 100 == 0)
-                    {
-                        _managedEntities.Clear();
-                        MyAPIGateway.Entities.GetEntities(_managedEntities, entity => entity is IMyCubeGrid);
-                        foreach (var entity in _managedEntities)
-                        {
-                            var grid = entity as MyCubeGrid;
-                            if ((grid == null || !grid.HasBlockWithSubtypeId("LargeFlightMovement")) &&
-                                !grid.HasBlockWithSubtypeId("RivalAIRemoteControlLarge"))
-                                continue;
-
-                            var entityId = grid.EntityId;
-                            if (!Tracking.Contains(entityId))
-                            {
-                                var packet = new PacketGridData
-                                        { Id = entityId, Value = (byte)(Tracking.Contains(entityId) ? 2 : 1) }
-                                    ;
-                                Static.MyNetwork.TransmitToServer(packet);
-                                if (packet.Value == 1)
-                                {
-                                    MyAPIGateway.Utilities.ShowNotification("ShipTracker: Added grid to tracker");
-                                    Tracking.Add(entityId);
-                                    if (!IntegretyMessage.Visible) IntegretyMessage.Visible = true;
-                                    Data[entityId].CreateHud();
-                                }
-                                else
-                                {
-                                    MyAPIGateway.Utilities.ShowNotification(
-                                        "ShipTracker: Removed grid from tracker");
-                                    Tracking.Remove(entityId);
-                                    Data[entityId].DisposeHud();
-                                }
-                            }
-
-                            _fastStart = _count;
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error($"Exception in UpdateAfterSimulation TryCatch 03: {e}");
-            }
-        }
-
-
-        public override void Draw()
-        {
-            //if you are the server do nothing here
-            if (MyAPIGateway.Utilities.IsDedicated || !TextHudApi.Heartbeat)
-                return;
-            try
-            {
-                if (MyAPIGateway.Session?.Camera != null && MyAPIGateway.Session.CameraController != null && !MyAPIGateway.Gui.ChatEntryVisible &&
-                    !MyAPIGateway.Gui.IsCursorVisible && MyAPIGateway.Gui.GetCurrentScreen == MyTerminalPageEnum.None)
-                {
-                    HandleKeyInputs();
-                }
-
-                foreach (var x in Data.Keys)
-                    if (Tracking.Contains(x))
-                        Data[x].UpdateHud();
-                    else
-                        Data[x].DisposeHud();
-
-                Problemmessage.Message.Clear();
-                switch ((ProblemReportState) LocalProblemSwitch)
-                {
-                    case ProblemReportState.ItsOver:
-                        const string tempText = "<color=Red>" + "A PROBLEM HAS BEEN REPORTED," + "\n" +
-                                                "CHECK WITH BOTH TEAMS AND THEN TYPE '/fixed' TO CLEAR THIS MESSAGE";
-                        Problemmessage.Message.Append(tempText);
-                        Problemmessage.Visible = true;
-                        break;
-                    case ProblemReportState.ThisIsFine:
-                        Problemmessage.Visible = false;
-                        break;
-                }
-
-                _hudPointsList?.UpdateDraw();
-
-                UpdateTrackingData();
-            }
-            catch (Exception e)
-            {
-                Log.Error($"Exception in Draw: {e}");
-            }
-        }
-
 
         private readonly Dictionary<MyKeys, Action> _keyAndActionPairs = new Dictionary<MyKeys, Action>
         {
@@ -486,28 +450,11 @@ namespace klime.PointCheck
                 MyKeys.M, () =>
                 {
                     IMyCubeGrid castGrid = RaycastGridFromCamera();
-                    var packet = new PacketGridData
-                    {
-                        Id = castGrid.EntityId,
-                        Value = (byte)(Tracking.Contains(castGrid.EntityId) ? 2 : 1)
-                    };
-                    Static.MyNetwork.TransmitToServer(packet);
 
-                    if (packet.Value == 1)
-                    {
-                        MyAPIGateway.Utilities.ShowNotification(
-                            "ShipTracker: Added grid to tracker");
-                        Tracking.Add(castGrid.EntityId);
-                        if (!IntegretyMessage.Visible) IntegretyMessage.Visible = true;
-                        Data[castGrid.EntityId].CreateHud();
-                    }
+                    if (!TrackingManager.I.IsGridTracked(castGrid))
+                        TrackingManager.I.TrackGrid(castGrid);
                     else
-                    {
-                        MyAPIGateway.Utilities.ShowNotification(
-                            "ShipTracker: Removed grid from tracker");
-                        Tracking.Remove(castGrid.EntityId);
-                        Data[castGrid.EntityId].DisposeHud();
-                    }
+                        TrackingManager.I.UntrackGrid(castGrid);
                 }
             },
             {
@@ -603,23 +550,20 @@ namespace klime.PointCheck
             Dictionary<string, int> bp, Dictionary<string, int> mbp, Dictionary<string, int> pbp,
             Dictionary<string, int> obp, Dictionary<string, int> mobp)
         {
-            foreach (var z in Tracking)
+            foreach (var shipTracker in TrackingManager.I.TrackedGrids.Values)
             {
-                ShipTracker d;
-                if (!Data.TryGetValue(z, out d))
-                    continue;
-                d.LastUpdate--;
+                shipTracker.LastUpdate--;
 
-                if (d.LastUpdate <= 0)
+                if (shipTracker.LastUpdate <= 0)
                 {
-                    Data[z].DisposeHud();
-                    Data.Remove(z);
+                    shipTracker.DisposeHud();
+                    TrackingManager.I.TrackedGrids.Remove(shipTracker.Grid);
                     continue;
                 }
 
-                var fn = d.FactionName;
-                var o = d.OwnerName;
-                var nd = d.IsFunctional;
+                var fn = shipTracker.FactionName;
+                var o = shipTracker.OwnerName;
+                var nd = shipTracker.IsFunctional;
 
                 if (!ts.ContainsKey(fn))
                 {
@@ -634,24 +578,24 @@ namespace klime.PointCheck
 
                 if (nd)
                 {
-                    m[fn] += d.Mass;
-                    bp[fn] += d.Bpts;
+                    m[fn] += shipTracker.Mass;
+                    bp[fn] += shipTracker.Bpts;
                 }
                 else
                 {
                     continue;
                 }
 
-                mbp[fn] += d.MiscBps;
-                pbp[fn] += d.PowerBps;
-                obp[fn] += d.OffensiveBps;
-                mobp[fn] += d.MovementBps;
+                mbp[fn] += shipTracker.MiscBps;
+                pbp[fn] += shipTracker.PowerBps;
+                obp[fn] += shipTracker.OffensiveBps;
+                mobp[fn] += shipTracker.MovementBps;
 
-                var g = d.GunL.Values.Sum();
-                var pwr = FormatPower(Math.Round(d.CurrentPower, 1));
-                var ts2 = FormatThrust(Math.Round(d.InstalledThrust, 2));
+                var g = shipTracker.GunL.Values.Sum();
+                var pwr = FormatPower(Math.Round(shipTracker.CurrentPower, 1));
+                var ts2 = FormatThrust(Math.Round(shipTracker.InstalledThrust, 2));
 
-                ts[fn].Add(CreateDisplayString(o, d, g, pwr, ts2));
+                ts[fn].Add(CreateDisplayString(o, shipTracker, g, pwr, ts2));
             }
         }
 
@@ -733,7 +677,6 @@ namespace klime.PointCheck
                 MyAPIGateway.Utilities.ShowNotification("ShipTracker: Added grid to tracker");
                 Tracking.Add(entityId);
                 if (!IntegretyMessage.Visible) IntegretyMessage.Visible = true;
-                Data[entityId].CreateHud();
             }
         }
 
@@ -752,37 +695,6 @@ namespace klime.PointCheck
         {
             if (AllPlayers != null && AllPlayers.ContainsKey(v)) return AllPlayers[v];
             return null;
-        }
-
-        protected override void UnloadData()
-        {
-            Log.Info("Start PointCheck.UnloadData()");
-            base.UnloadData();
-            CommandHandler.Close();
-
-            TextHudApi?.Unload();
-            WcApi?.Unload();
-            ShApi?.Unload();
-            if (PointValues != null)
-            {
-                PointValues.Clear();
-                Sending.Clear();
-                Data.Clear();
-                AllPlayers.Clear();
-                ListPlayers.Clear();
-            }
-
-            //NetworkAPI.Instance.Close();
-            foreach (var x in Data.Keys)
-                if (Tracking.Contains(x))
-                    Data[x].UpdateHud();
-                else
-                    Data[x].DisposeHud();
-
-            Static?.Dispose();
-            MyAPIGateway.Utilities.UnregisterMessageHandler(2546247, AddPointValues);
-
-            I = null;
         }
 
         public static IMyCubeGrid RaycastGridFromCamera()
