@@ -46,8 +46,6 @@ namespace klime.PointCheck
         public static int LocalProblemSwitch;
         public static Dictionary<string, int> PointValues = new Dictionary<string, int>();
 
-        public static Dictionary<long, List<ulong>> Sending = new Dictionary<long, List<ulong>>();
-        public static HashSet<long> Tracking = new HashSet<long>();
         private static readonly Dictionary<long, IMyPlayer> AllPlayers = new Dictionary<long, IMyPlayer>();
         private static readonly List<IMyPlayer> ListPlayers = new List<IMyPlayer>();
 
@@ -146,7 +144,6 @@ namespace klime.PointCheck
             if (PointValues != null)
             {
                 PointValues.Clear();
-                Sending.Clear();
                 AllPlayers.Clear();
                 ListPlayers.Clear();
             }
@@ -244,28 +241,7 @@ namespace klime.PointCheck
                                 !grid.HasBlockWithSubtypeId("RivalAIRemoteControlLarge"))
                                 continue;
 
-                            var entityId = grid.EntityId;
-                            if (!Tracking.Contains(entityId))
-                            {
-                                var packet = new PacketGridData
-                                { Id = entityId, Value = (byte)(Tracking.Contains(entityId) ? 2 : 1) }
-                                    ;
-                                Static.MyNetwork.TransmitToServer(packet);
-                                if (packet.Value == 1)
-                                {
-                                    MyAPIGateway.Utilities.ShowNotification("ShipTracker: Added grid to tracker");
-                                    Tracking.Add(entityId);
-                                    if (!IntegretyMessage.Visible) IntegretyMessage.Visible = true;
-                                }
-                                else
-                                {
-                                    MyAPIGateway.Utilities.ShowNotification(
-                                        "ShipTracker: Removed grid from tracker");
-                                    Tracking.Remove(entityId);
-                                }
-                            }
-
-                            _fastStart = _count;
+                            TrackingManager.I.TrackGrid(grid);
                         }
                     }
                 }
@@ -297,7 +273,7 @@ namespace klime.PointCheck
                 {
                     case ProblemReportState.ItsOver:
                         const string tempText = "<color=Red>" + "A PROBLEM HAS BEEN REPORTED," + "\n" +
-                                                "CHECK WITH BOTH TEAMS AND THEN TYPE '/fixed' TO CLEAR THIS MESSAGE";
+                                                "CHECK WITH BOTH TEAMS AND THEN TYPE '/st fixed' TO CLEAR THIS MESSAGE";
                         Problemmessage.Message.Append(tempText);
                         Problemmessage.Visible = true;
                         break;
@@ -528,16 +504,7 @@ namespace klime.PointCheck
 
             TeamBpCalc(tt, _ts, _m, _bp, _mbp, _pbp, _obp, _mobp);
 
-            var autotrackenabled = false;
-            // Autotrack players when match is running, set above bool to true to enable
-            if (MatchTimer.I.Ticks % 240 == 0 && autotrackenabled)
-            {
-                var ce = MyAPIGateway.Session.Player?.Controller?.ControlledEntity?.Entity;
-                var ck = ce as IMyCockpit;
-                var eid = ck.CubeGrid.EntityId;
-
-                AutoTrackPilotedShip(ck, eid);
-            }
+            // TODO re-introduce autotrack.
 
             IntegretyMessage.Message.Clear();
             IntegretyMessage.Message.Append(tt);
@@ -641,36 +608,6 @@ namespace klime.PointCheck
                 foreach (var y in trackedShip[x]) tt.AppendLine(y);
             }
         }
-
-
-        private static void AutoTrackPilotedShip(IMyCockpit cockpit, long entityId)
-        {
-            if (cockpit == null || Tracking.Contains(entityId)) return;
-
-            var hasGyro = false;
-            var hasBatteryOrReactor = false;
-            var gridBlocks = new List<IMySlimBlock>();
-            cockpit.CubeGrid.GetBlocks(gridBlocks);
-
-            foreach (var block in gridBlocks)
-            {
-                if (block.FatBlock is IMyGyro)
-                    hasGyro = true;
-                else if (block.FatBlock is IMyBatteryBlock || block.FatBlock is IMyReactor) hasBatteryOrReactor = true;
-
-                if (hasGyro && hasBatteryOrReactor) break;
-            }
-
-            if (hasGyro && hasBatteryOrReactor)
-            {
-                var packetData = new PacketGridData { Id = entityId, Value = 1 };
-                Static.MyNetwork.TransmitToServer(packetData);
-                MyAPIGateway.Utilities.ShowNotification("ShipTracker: Added grid to tracker");
-                Tracking.Add(entityId);
-                if (!IntegretyMessage.Visible) IntegretyMessage.Visible = true;
-            }
-        }
-
 
         public static void There_Is_A_Problem()
         {

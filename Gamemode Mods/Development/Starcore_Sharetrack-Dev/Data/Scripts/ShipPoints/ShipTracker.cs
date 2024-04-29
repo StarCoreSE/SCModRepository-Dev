@@ -94,7 +94,6 @@ namespace klime.PointCheck
         {
             if (MyAPIGateway.Session.IsServer)
             {
-                PointCheck.Sending.Remove(e.EntityId);
                 TrackingManager.I.TrackedGrids.Remove(Grid);
                 DisposeHud();
             }

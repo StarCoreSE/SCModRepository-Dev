@@ -47,51 +47,6 @@ namespace Math0424.Networking
                     TrackingManager.I.ServerDoSync();
                 }
 
-            if (e.PacketId == 1)
-            {
-                //inject for shared list
-
-                AllPlayers.Clear();
-                ListPlayers.Clear();
-                MyAPIGateway.Players.GetPlayers(ListPlayers);
-                foreach (var p in ListPlayers) AllPlayers.Add(p.SteamUserId);
-                //end
-
-
-                var packet = e.UnWrap<PacketGridData>();
-                if (MyAPIGateway.Multiplayer.IsServer)
-                {
-                    var x = MyEntities.GetEntityById(packet.Id);
-                    if (x != null && x is IMyCubeGrid)
-                    {
-                        if (packet.Value == 1) //add
-                        {
-                            //if (packet.value == 1 && MyAPIGateway.Session.IsUserAdmin(e.SenderId))
-                            if (PointCheck.Sending.ContainsKey(packet.Id))
-                                try
-                                {
-                                    PointCheck.Sending[packet.Id].Remove(e.SenderId);
-                                }
-                                catch
-                                {
-                                }
-                            else
-                                PointCheck.Sending.Add(packet.Id, new List<ulong>());
-
-                            //option 1
-                            //PointCheck.Sending[packet.id].Add(e.SenderId);
-
-                            foreach (var p in AllPlayers) PointCheck.Sending[packet.Id].Add(p);
-                        }
-
-                    }
-                }
-                else
-                {
-
-                }
-            }
-
             if (e.PacketId == 5)
                 if (MyAPIGateway.Session.IsUserAdmin(e.SenderId))
                 {
