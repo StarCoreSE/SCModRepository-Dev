@@ -253,15 +253,15 @@ namespace klime.PointCheck
             // Initialize the WC_api and load it if it's not null
 
             WcApi = new WcApi();
-            if (WcApi != null) WcApi.Load();
+            WcApi?.Load();
 
             // Initialize the SH_api and load it if it's not null
             ShApi = new ShieldApi();
-            if (ShApi != null) ShApi.Load();
+            ShApi?.Load();
 
             // Initialize the RTS_api and load it if it's not null
             RtsApi = new RtsApi();
-            if (RtsApi != null) RtsApi.Load();
+            RtsApi?.Load();
         }
 
         private void HudRegistered()
@@ -467,7 +467,8 @@ namespace klime.PointCheck
         public override void Draw()
         {
             //if you are the server do nothing here
-            if (MyAPIGateway.Utilities.IsDedicated) return;
+            if (MyAPIGateway.Utilities.IsDedicated)
+                return;
             try
             {
                 var promoLevel = MyAPIGateway.Session.PromoteLevel;
@@ -595,44 +596,44 @@ namespace klime.PointCheck
 
         private void UpdateTrackingData()
         {
-            if (MatchTimer.I.Ticks % 60 == 0 && IntegretyMessage != null && TextHudApi.Heartbeat)
+            if (MatchTimer.I.Ticks % 60 != 0 || IntegretyMessage == null || !TextHudApi.Heartbeat)
+                return;
+
+            var tt = new StringBuilder();
+
+            // Clear the dictionaries to remove old data
+            _ts.Clear();
+            _m.Clear();
+            _bp.Clear();
+            _mbp.Clear();
+            _pbp.Clear();
+            _obp.Clear();
+            _mobp.Clear();
+
+            MainTrackerUpdate(_ts, _m, _bp, _mbp, _pbp, _obp, _mobp);
+
+            // Match time
+            tt.Append("<color=orange>----                 <color=white>Match Time: ")
+                .Append(MatchTimer.I.CurrentMatchTime.ToString(@"mm\:ss"))
+                .Append('/')
+                .Append(MatchTimer.I.MatchDurationString)
+                .Append("                 <color=orange>----\n");
+
+            TeamBpCalc(tt, _ts, _m, _bp, _mbp, _pbp, _obp, _mobp);
+
+            var autotrackenabled = false;
+            // Autotrack players when match is running, set above bool to true to enable
+            if (MatchTimer.I.Ticks % 240 == 0 && autotrackenabled)
             {
-                var tt = new StringBuilder();
+                var ce = MyAPIGateway.Session.Player?.Controller?.ControlledEntity?.Entity;
+                var ck = ce as IMyCockpit;
+                var eid = ck.CubeGrid.EntityId;
 
-                // Clear the dictionaries to remove old data
-                _ts.Clear();
-                _m.Clear();
-                _bp.Clear();
-                _mbp.Clear();
-                _pbp.Clear();
-                _obp.Clear();
-                _mobp.Clear();
-
-                MainTrackerUpdate(_ts, _m, _bp, _mbp, _pbp, _obp, _mobp);
-
-                // Match time
-                tt.Append("<color=orange>----                 <color=white>Match Time: ")
-                    .Append(MatchTimer.I.CurrentMatchTime.ToString(@"mm\:ss"))
-                    .Append('/')
-                    .Append(MatchTimer.I.MatchDurationString)
-                    .Append("                 <color=orange>----\n");
-
-                TeamBpCalc(tt, _ts, _m, _bp, _mbp, _pbp, _obp, _mobp);
-
-                var autotrackenabled = false;
-                // Autotrack players when match is running, set above bool to true to enable
-                if (MatchTimer.I.Ticks % 240 == 0 && autotrackenabled)
-                {
-                    var ce = MyAPIGateway.Session.Player?.Controller?.ControlledEntity?.Entity;
-                    var ck = ce as IMyCockpit;
-                    var eid = ck.CubeGrid.EntityId;
-
-                    AutoTrackPilotedShip(ck, eid);
-                }
-
-                IntegretyMessage.Message.Clear();
-                IntegretyMessage.Message.Append(tt);
+                AutoTrackPilotedShip(ck, eid);
             }
+
+            IntegretyMessage.Message.Clear();
+            IntegretyMessage.Message.Append(tt);
         }
 
 
@@ -797,9 +798,9 @@ namespace klime.PointCheck
             base.UnloadData();
             CommandHandler.Close();
 
-            if (TextHudApi != null) TextHudApi.Unload();
-            if (WcApi != null) WcApi.Unload();
-            if (ShApi != null) ShApi.Unload();
+            TextHudApi?.Unload();
+            WcApi?.Unload();
+            ShApi?.Unload();
             if (PointValues != null)
             {
                 PointValues.Clear();
