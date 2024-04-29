@@ -4,16 +4,19 @@ using static Math0424.Networking.MyEasyNetworkManager;
 namespace ShipPoints.Data.Scripts.ShipPoints.Networking
 {
     [ProtoContract]
-    class TimerPacket : ITPacket
+    internal class TimerPacket : ITPacket
     {
-        [ProtoMember(1)]
-        public int ServerTime;
-        public TimerPacket() { } // Empty constructor required for deserialization
+        [ProtoMember(1)] public int ServerTime;
 
-        public TimerPacket(int ServerTime)
+        public TimerPacket()
         {
-            this.ServerTime = ServerTime;
+        } // Empty constructor required for deserialization
+
+        public TimerPacket(int serverTime)
+        {
+            this.ServerTime = serverTime;
         }
+
         public int GetTime()
         {
             return ServerTime;

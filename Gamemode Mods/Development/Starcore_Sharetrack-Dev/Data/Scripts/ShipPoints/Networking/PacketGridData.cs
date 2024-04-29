@@ -7,13 +7,18 @@ namespace Math0424.ShipPoints
     [ProtoContract]
     public class PacketGridData : IPacket
     {
-        [ProtoMember(1)] public byte value;
-        [ProtoMember(2)] public long id;
-        [ProtoMember(3)] public ShipTracker tracked;
+        [ProtoMember(2)] public long Id;
+        [ProtoMember(3)] public ShipTracker Tracked;
+        [ProtoMember(1)] public byte Value;
+
         public PacketGridData()
         {
-            tracked = new ShipTracker();
+            Tracked = new ShipTracker();
         }
-        public int GetId() { return 1; }
+
+        public int GetId()
+        {
+            return 1;
+        }
     }
 }
