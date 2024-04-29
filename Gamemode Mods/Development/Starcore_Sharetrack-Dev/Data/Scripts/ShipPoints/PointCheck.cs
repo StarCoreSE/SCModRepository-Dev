@@ -104,16 +104,16 @@ namespace klime.PointCheck
         public NetSync<int> Team3Tickets;
         public int TempLocalTimer;
 
-        public static HudAPIv2 TextHudApi;
+        public HudAPIv2 TextHudApi;
 
         public NetSync<int> ThreeTeams;
 
         // todo: remove this and replace with old solution for just combining BP and mass
         private readonly Dictionary<string, List<string>> _ts = new Dictionary<string, List<string>>();
         private ProblemReportState _vProblemReportState = ProblemReportState.ThisIsFine;
-        public static WcApi WcApi { get; private set; }
-        public static ShieldApi ShApi { get; private set; }
-        public static RtsApi RtsApi { get; private set; }
+        public WcApi WcApi { get; private set; }
+        public ShieldApi ShApi { get; private set; }
+        public RtsApi RtsApi { get; private set; }
 
         private HudPointsList _hudPointsList;
 
@@ -793,6 +793,7 @@ namespace klime.PointCheck
 
         protected override void UnloadData()
         {
+            Log.Info("Start PointCheck.UnloadData()");
             base.UnloadData();
             CommandHandler.Close();
 

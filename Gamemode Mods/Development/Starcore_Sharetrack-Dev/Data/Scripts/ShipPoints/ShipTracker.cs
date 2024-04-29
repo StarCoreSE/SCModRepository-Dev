@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using DefenseShields;
 using Draygo.API;
 using ProtoBuf;
 using Sandbox.Definitions;
@@ -18,6 +19,8 @@ namespace klime.PointCheck
     [ProtoContract]
     public class ShipTracker
     {
+        private ShieldApi ShieldApi => PointCheck.I.ShApi;
+
         [ProtoMember(10)] public int BlockCount;
         [ProtoMember(6)] public int Bpts;
         private readonly List<IMyCubeGrid> _connectedGrids = new List<IMyCubeGrid>();
@@ -178,21 +181,21 @@ namespace klime.PointCheck
 
             IMyTerminalBlock shieldBlock = null;
             foreach (var g in _connectedGrids)
-                if ((shieldBlock = PointCheck.ShApi.GetShieldBlock(g)) != null)
+                if ((shieldBlock = ShieldApi.GetShieldBlock(g)) != null)
                     break;
 
             if (shieldBlock != null)
             {
-                ShieldStrength = PointCheck.ShApi.GetMaxHpCap(shieldBlock);
-                CurrentShieldStrength = PointCheck.ShApi.GetShieldPercent(shieldBlock);
-                if (OriginalShieldStrength == -1 && !PointCheck.ShApi.IsFortified(shieldBlock))
-                    OriginalShieldStrength = PointCheck.ShApi.GetMaxHpCap(shieldBlock);
-                CurrentShieldStrength = PointCheck.ShApi.GetShieldPercent(shieldBlock) *
+                ShieldStrength = ShieldApi.GetMaxHpCap(shieldBlock);
+                CurrentShieldStrength = ShieldApi.GetShieldPercent(shieldBlock);
+                if (OriginalShieldStrength == -1 && !ShieldApi.IsFortified(shieldBlock))
+                    OriginalShieldStrength = ShieldApi.GetMaxHpCap(shieldBlock);
+                CurrentShieldStrength = ShieldApi.GetShieldPercent(shieldBlock) *
                                         (OriginalShieldStrength == -1
                                             ? 1
-                                            : PointCheck.ShApi.GetMaxHpCap(shieldBlock) /
+                                            : ShieldApi.GetMaxHpCap(shieldBlock) /
                                               OriginalShieldStrength);
-                ShieldHeat = PointCheck.ShApi.GetShieldHeat(shieldBlock);
+                ShieldHeat = ShieldApi.GetShieldHeat(shieldBlock);
             }
 
             OriginalIntegrity = OriginalIntegrity == -1 ? CurrentIntegrity : OriginalIntegrity;
