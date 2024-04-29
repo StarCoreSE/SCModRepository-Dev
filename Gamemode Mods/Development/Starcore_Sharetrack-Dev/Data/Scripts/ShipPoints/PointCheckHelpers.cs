@@ -306,5 +306,4 @@ internal static class PointCheckHelpers
     };
 
     public static bool NameplateVisible = true;
-    public static int Timer = 0;
 }

@@ -23,7 +23,7 @@ namespace ShipPoints.Commands
             PointCheck.I.Team1Tickets.Value = PointCheck.MatchTickets;
             PointCheck.I.Team2Tickets.Value = PointCheck.MatchTickets;
             PointCheck.LocalMatchState = 1;
-            MatchTimer.I.Start(PointCheck.Matchtime / 60d / 60d);
+            MatchTimer.I.Start();
             MyAPIGateway.Utilities.ShowMessage("GM", "You are the captain now.");
             MyAPIGateway.Utilities.ShowNotification("HEY DUMBASS, IS DAMAGE ON?", 10000, "Red");
         }
@@ -36,15 +36,6 @@ namespace ShipPoints.Commands
             PointCheck.I.Team2Tickets.Value = PointCheck.MatchTickets;
             PointCheck.I.Team3Tickets.Value = PointCheck.MatchTickets;
             PointCheck.LocalMatchState = 0;
-            PointCheck.I.CaptainCapTimerZ3T1.Value = 0;
-            PointCheck.I.CaptainCapTimerZ3T2.Value = 0;
-            PointCheck.I.CaptainCapTimerZ3T3.Value = 0;
-            PointCheck.I.CaptainCapTimerZ2T1.Value = 0;
-            PointCheck.I.CaptainCapTimerZ2T2.Value = 0;
-            PointCheck.I.CaptainCapTimerZ2T3.Value = 0;
-            PointCheck.I.CaptainCapTimerZ1T1.Value = 0;
-            PointCheck.I.CaptainCapTimerZ1T2.Value = 0;
-            PointCheck.I.CaptainCapTimerZ1T3.Value = 0;
             MatchTimer.I.Stop();
             MyAPIGateway.Utilities.ShowMessage("GM", "Match Ended.");
         }
@@ -69,13 +60,12 @@ namespace ShipPoints.Commands
         {
             try
             {
-                MyAPIGateway.Utilities.ShowNotification("Match duration changed to " + args[1] + " minutes.");
-                PointCheck.Matchtime = int.Parse(args[1]) * 60 * 60;
-                MatchTimer.I.MatchDurationMinutes = PointCheck.Matchtime / 60d / 60d;
+                MatchTimer.I.SetMatchTime(double.Parse(args[1]));
+                MyAPIGateway.Utilities.ShowNotification("Match time changed to " + args[1] + " minutes.");
             }
             catch (Exception)
             {
-                MyAPIGateway.Utilities.ShowNotification("Win time not changed, try /setmatchtime xxx (in minutes)");
+                MyAPIGateway.Utilities.ShowNotification("Win time not changed, try /st setmatchtime xxx (in minutes)");
             }
         }
 
@@ -92,7 +82,7 @@ namespace ShipPoints.Commands
             }
             catch (Exception)
             {
-                MyAPIGateway.Utilities.ShowNotification("Teams not changed, try /setteams abc xyz");
+                MyAPIGateway.Utilities.ShowNotification("Teams not changed, try /st setteams abc xyz");
             }
         }
 
@@ -100,13 +90,12 @@ namespace ShipPoints.Commands
         {
             try
             {
-                PointCheck.Wintime = int.Parse(args[1]);
-                MatchTimer.I.MatchDurationMinutes = PointCheck.Wintime;
-                MyAPIGateway.Utilities.ShowNotification("Win time changed to " + PointCheck.Wintime);
+                MatchTimer.I.MatchDurationMinutes = int.Parse(args[1]);
+                MyAPIGateway.Utilities.ShowNotification("Match duration changed to " + MatchTimer.I.MatchDurationMinutes + "m.");
             }
             catch (Exception)
             {
-                MyAPIGateway.Utilities.ShowNotification("Win time not changed, try /settime xxx (in seconds)");
+                MyAPIGateway.Utilities.ShowNotification("Win time not changed, try /st settime xxx (in seconds)");
             }
         }
 
@@ -120,7 +109,7 @@ namespace ShipPoints.Commands
             }
             catch (Exception)
             {
-                MyAPIGateway.Utilities.ShowNotification("Delay time not changed, try /setdelay x (in minutes)");
+                MyAPIGateway.Utilities.ShowNotification("Delay time not changed, try /st setdelay x (in minutes)");
             }
         }
 
@@ -134,7 +123,7 @@ namespace ShipPoints.Commands
             }
             catch (Exception)
             {
-                MyAPIGateway.Utilities.ShowNotification("Decay time not changed, try /setdecay xxx (in seconds)");
+                MyAPIGateway.Utilities.ShowNotification("Decay time not changed, try /st setdecay xxx (in seconds)");
             }
         }
 

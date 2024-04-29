@@ -50,7 +50,6 @@ namespace klime.PointCheck
         public const string Keyword = "/debug";
         public const string DisplayName = "Debug";
         private const double CombatRadius = 12500;
-        private const double ViewDistSqr = 306250000;
         public static NetSync<int> ServerMatchState;
         public static int LocalMatchState;
         public static bool _amTheCaptainNow;
@@ -77,10 +76,8 @@ namespace klime.PointCheck
         public static bool Broadcaststat;
         public static string[] Viewmode = { "Player", "Grid", "Grid & Player", "False" };
         public static int Viewstat;
-        public static int Wintime = 120;
         public static int Decaytime = 180;
         public static int Delaytime = 60; //debug
-        public static int Matchtime = 72000;
         public static int MatchTickets = 1500;
         public static int TempServerTimer;
 
@@ -97,22 +94,6 @@ namespace klime.PointCheck
 
         private readonly Dictionary<string, int> _bp = new Dictionary<string, int>();
 
-        //public NetSync<int> CaptainCapTimerZ1; public NetSync<int> CaptainCapTimerZ2; public NetSync<int> CaptainCapTimerZ3;
-        public NetSync<int> CaptainCapTimerZ1T1;
-        public NetSync<int> CaptainCapTimerZ1T2;
-        public NetSync<int> CaptainCapTimerZ1T3;
-        public NetSync<int> CaptainCapTimerZ2T1;
-        public NetSync<int> CaptainCapTimerZ2T2;
-        public NetSync<int> CaptainCapTimerZ2T3;
-        public NetSync<int> CaptainCapTimerZ3T1;
-        public NetSync<int> CaptainCapTimerZ3T2;
-
-        public NetSync<int> CaptainCapTimerZ3T3;
-
-        //
-        public NetSync<Vector3D> CaptainRandVector3D;
-
-        public Vector3D ClientRandVector3D;
         // Get the sphere model based on the given cap color
 
         private bool _doClientRequest = true;
@@ -126,7 +107,6 @@ namespace klime.PointCheck
         private readonly Dictionary<string, int> _pbp = new Dictionary<string, int>();
 
         //Old cap
-        public NetSync<int> ServerSyncTimer;
         public bool SphereVisual = true;
         public NetSync<string> Team1;
         public NetSync<int> Team1Tickets;
@@ -155,8 +135,7 @@ namespace klime.PointCheck
             MyNetworkHandler.Init();
             MyAPIGateway.Utilities.ShowMessage("ShipPoints v3.2 - Control Zone",
                 "Aim at a grid and press Shift+T to show stats, " +
-                "Shift+M to track a grid, Shift+J to cycle nametag style. " +
-                "Type '/sphere' to turn off/on the sphere visuals.");
+                "Shift+M to track a grid, Shift+J to cycle nametag style. ");
 
             if (!NetworkApi.IsInitialized) NetworkApi.Init(ComId, DisplayName, Keyword);
 
@@ -165,16 +144,6 @@ namespace klime.PointCheck
 
         private void InitializeNetSyncVariables()
         {
-            CaptainCapTimerZ1T1 = CreateNetSync(0);
-            CaptainCapTimerZ1T2 = CreateNetSync(0);
-            CaptainCapTimerZ1T3 = CreateNetSync(0);
-            CaptainCapTimerZ2T1 = CreateNetSync(0);
-            CaptainCapTimerZ2T2 = CreateNetSync(0);
-            CaptainCapTimerZ2T3 = CreateNetSync(0);
-            CaptainCapTimerZ3T1 = CreateNetSync(0);
-            CaptainCapTimerZ3T2 = CreateNetSync(0);
-            CaptainCapTimerZ3T3 = CreateNetSync(0);
-
             Team1Tickets = CreateNetSync(0);
             Team2Tickets = CreateNetSync(0);
             Team3Tickets = CreateNetSync(0);
@@ -184,14 +153,11 @@ namespace klime.PointCheck
             Team3 = CreateNetSync("NEU");
 
             ServerMatchState = CreateNetSync(0);
-            ServerSyncTimer = CreateNetSync(0);
 
             ThreeTeams = CreateNetSync(0);
             GameModeSwitch = CreateNetSync(3);
 
             //ProblemSwitch = CreateNetSync<int>(0);
-
-            CaptainRandVector3D = CreateNetSync(ClientRandVector3D);
         }
 
         private NetSync<T> CreateNetSync<T>(T defaultValue)
@@ -202,23 +168,23 @@ namespace klime.PointCheck
         public static void Begin()
         {
             TempServerTimer = 0;
-            PointCheckHelpers.Timer = 0;
+            MatchTimer.I.Ticks = 0;
             Broadcaststat = true;
             if (TimerMessage != null)
                 TimerMessage.Visible = true;
             if (Ticketmessage != null)
                 Ticketmessage.Visible = true;
             LocalMatchState = 1;
-            MatchTimer.I.Start(Matchtime / 60d / 60d);
+            MatchTimer.I.Start();
             MyAPIGateway.Utilities.ShowNotification("Commit die. Zone activates in " + Delaytime / 3600 +
-                                                    "m, match ends in " + Matchtime / 3600 + "m.");
+                                                    "m, match ends in " + MatchTimer.I.MatchDurationMinutes + "m.");
             MyLog.Default.WriteLineAndConsole("Match started!");
         }
 
         public static void EndMatch()
         {
             TempServerTimer = 0;
-            PointCheckHelpers.Timer = 0;
+            MatchTimer.I.Ticks = 0;
             Broadcaststat = false;
             if (TimerMessage != null)
                 TimerMessage.Visible = false;
@@ -228,75 +194,6 @@ namespace klime.PointCheck
             _amTheCaptainNow = false;
             MatchTimer.I.Stop();
             MyAPIGateway.Utilities.ShowNotification("Match Ended.");
-        }
-
-        public static void TrackYourselfMyMan()
-        {
-            try
-            {
-                if (!Broadcaststat ||
-                    !(MyAPIGateway.Session.Player.Controller?.ControlledEntity?.Entity is IMyCockpit))
-                    return;
-
-                // Clear tracking and sending lists
-                Tracking.Clear();
-                Sending.Clear();
-
-                // Get the controlled cockpit
-                var cockpit = (IMyCockpit) MyAPIGateway.Session.Player.Controller?.ControlledEntity?.Entity;
-
-                // Check if the grid data exists
-                if (cockpit == null || !Data.ContainsKey(cockpit.CubeGrid.EntityId))
-                    return;
-
-                // Dispose the current HUD
-                Data[cockpit.CubeGrid.EntityId].DisposeHud();
-
-                // Create a packet for the grid data
-                var packet = new PacketGridData
-                {
-                    Id = cockpit.CubeGrid.EntityId,
-                    Value = (byte)(Tracking.Contains(cockpit.CubeGrid.EntityId) ? 2 : 1)
-                };
-
-                // Transmit the packet to the server
-                Static.MyNetwork.TransmitToServer(packet, true, true);
-
-                // Update tracking and HUD based on the packet value
-                if (packet.Value == 1)
-                {
-                    Tracking.Add(cockpit.CubeGrid.EntityId);
-                    IntegretyMessage.Visible = true;
-                    Data[cockpit.CubeGrid.EntityId].CreateHud();
-                }
-                else
-                {
-                    Tracking.Remove(cockpit.CubeGrid.EntityId);
-                    Data[cockpit.CubeGrid.EntityId].DisposeHud();
-                    IntegretyMessage.Visible = false;
-
-                    // Create another packet to re-track if necessary
-                    var packetB = new PacketGridData
-                    {
-                        Id = cockpit.CubeGrid.EntityId,
-                        Value = (byte)(Tracking.Contains(cockpit.CubeGrid.EntityId) ? 2 : 1)
-                    };
-
-                    // Transmit the packet to the server
-                    Static.MyNetwork.TransmitToServer(packetB);
-
-                    if (packetB.Value == 1)
-                    {
-                        Tracking.Add(cockpit.CubeGrid.EntityId);
-                        IntegretyMessage.Visible = true;
-                        Data[cockpit.CubeGrid.EntityId].CreateHud();
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error($"Exception in TrackYourselfMyMan: {e}");
-            }
         }
 
         public static void AddPointValues(object obj)
@@ -445,28 +342,15 @@ namespace klime.PointCheck
             }
 
             TempLocalTimer++;
-            PointCheckHelpers.Timer++;
-            if (PointCheckHelpers.Timer >= 144000)
+            if (MatchTimer.I.Ticks >= 144000)
             {
-                PointCheckHelpers.Timer = 0;
+                MatchTimer.I.Ticks = 0;
                 TempLocalTimer = 0;
                 TempServerTimer = 0;
             }
 
-            if (_joinInit)
-            {
-            }
-
-            if (MyAPIGateway.Utilities.IsDedicated && TempServerTimer % 60 == 0 && Broadcaststat)
-            {
-                ServerSyncTimer.Value = TempServerTimer;
-                ServerSyncTimer.Push();
-            }
-
             if (Broadcaststat && !_amTheCaptainNow && TempLocalTimer % 60 == 0)
             {
-                ServerSyncTimer.Fetch();
-                PointCheckHelpers.Timer = ServerSyncTimer.Value;
                 TempLocalTimer = 0;
             }
 
@@ -474,10 +358,10 @@ namespace klime.PointCheck
             {
                 if (!MyAPIGateway.Utilities.IsDedicated && Broadcaststat)
                 {
-                    var tick100 = PointCheckHelpers.Timer % 100 == 0;
-                    if (PointCheckHelpers.Timer - _fastStart < 300 || tick100)
+                    var tick100 = MatchTimer.I.Ticks % 100 == 0;
+                    if (MatchTimer.I.Ticks - _fastStart < 300 || tick100)
                     {
-                        _fastStart = PointCheckHelpers.Timer;
+                        _fastStart = MatchTimer.I.Ticks;
                         if (_joinInit == false)
                         {
                             Static.MyNetwork.TransmitToServer(new BasicPacket(7), true, true);
@@ -486,7 +370,6 @@ namespace klime.PointCheck
                             Team2.Fetch();
                             Team3.Fetch();
                             ServerMatchState.Fetch();
-                            ServerSyncTimer.Fetch();
                             Team1Tickets.Fetch();
                             Team2Tickets.Fetch();
                             Team3Tickets.Fetch();
@@ -507,7 +390,7 @@ namespace klime.PointCheck
                         LocalMatchState = ServerMatchState.Value;
                 }
 
-                if (Broadcaststat && PointCheckHelpers.Timer % 60 == 0)
+                if (Broadcaststat && MatchTimer.I.Ticks % 60 == 0)
                     if (_amTheCaptainNow && ServerMatchState.Value != 1)
                         ServerMatchState.Value = 1;
             }
@@ -518,7 +401,7 @@ namespace klime.PointCheck
 
             try
             {
-                if (PointCheckHelpers.Timer % 60 == 0)
+                if (MatchTimer.I.Ticks % 60 == 0)
                 {
                     AllPlayers.Clear();
                     MyAPIGateway.Multiplayer.Players.GetPlayers(ListPlayers, delegate(IMyPlayer p)
@@ -563,7 +446,7 @@ namespace klime.PointCheck
 
             try
             {
-                if (PointCheckHelpers.Timer % 60 == 0 && Broadcaststat)
+                if (MatchTimer.I.Ticks % 60 == 0 && Broadcaststat)
                 {
                     var tick100 = _count % 100 == 0;
                     _count++;
@@ -575,34 +458,34 @@ namespace klime.PointCheck
                         foreach (var entity in _managedEntities)
                         {
                             var grid = entity as MyCubeGrid;
-                            if ((grid != null && grid.HasBlockWithSubtypeId("LargeFlightMovement")) ||
-                                grid.HasBlockWithSubtypeId("RivalAIRemoteControlLarge"))
-                            {
-                                var entityId = grid.EntityId;
-                                if (!Tracking.Contains(entityId))
-                                {
-                                    var packet = new PacketGridData
-                                            { Id = entityId, Value = (byte)(Tracking.Contains(entityId) ? 2 : 1) }
-                                        ;
-                                    Static.MyNetwork.TransmitToServer(packet);
-                                    if (packet.Value == 1)
-                                    {
-                                        MyAPIGateway.Utilities.ShowNotification("ShipTracker: Added grid to tracker");
-                                        Tracking.Add(entityId);
-                                        if (!IntegretyMessage.Visible) IntegretyMessage.Visible = true;
-                                        Data[entityId].CreateHud();
-                                    }
-                                    else
-                                    {
-                                        MyAPIGateway.Utilities.ShowNotification(
-                                            "ShipTracker: Removed grid from tracker");
-                                        Tracking.Remove(entityId);
-                                        Data[entityId].DisposeHud();
-                                    }
-                                }
+                            if ((grid == null || !grid.HasBlockWithSubtypeId("LargeFlightMovement")) &&
+                                !grid.HasBlockWithSubtypeId("RivalAIRemoteControlLarge"))
+                                continue;
 
-                                _fastStart = _count;
+                            var entityId = grid.EntityId;
+                            if (!Tracking.Contains(entityId))
+                            {
+                                var packet = new PacketGridData
+                                        { Id = entityId, Value = (byte)(Tracking.Contains(entityId) ? 2 : 1) }
+                                    ;
+                                Static.MyNetwork.TransmitToServer(packet);
+                                if (packet.Value == 1)
+                                {
+                                    MyAPIGateway.Utilities.ShowNotification("ShipTracker: Added grid to tracker");
+                                    Tracking.Add(entityId);
+                                    if (!IntegretyMessage.Visible) IntegretyMessage.Visible = true;
+                                    Data[entityId].CreateHud();
+                                }
+                                else
+                                {
+                                    MyAPIGateway.Utilities.ShowNotification(
+                                        "ShipTracker: Removed grid from tracker");
+                                    Tracking.Remove(entityId);
+                                    Data[entityId].DisposeHud();
+                                }
                             }
+
+                            _fastStart = _count;
                         }
                     }
                 }
@@ -811,130 +694,129 @@ namespace klime.PointCheck
 
         private void ShiftTCals(IMyCubeGrid icubeG)
         {
-            if (PointCheckHelpers.Timer % 60 == 0)
+            // Update once per second
+            if (MatchTimer.I.Ticks % 60 != 0)
+                return;
+
+            var trkd = new ShipTracker(icubeG);
+            var pdInvestment = $"{trkd.PdPercentage}";
+            var pdInvestmentNum = $"{trkd.PdInvest}";
+            var totalShieldString = "None";
+
+            if (trkd.ShieldStrength > 100)
+                totalShieldString = $"{trkd.ShieldStrength / 100f:F2} M";
+            else if (trkd.ShieldStrength > 1 && trkd.ShieldStrength < 100)
+                totalShieldString = $"{trkd.ShieldStrength:F0}0 K";
+
+            var gunTextBuilder = new StringBuilder();
+            foreach (var x in trkd.GunL.Keys)
+                gunTextBuilder.AppendFormat("<color=Green>{0}<color=White> x {1}\n", trkd.GunL[x], x);
+            var gunText = gunTextBuilder.ToString();
+
+            var specialBlockTextBuilder = new StringBuilder();
+            foreach (var x in trkd.Sbl.Keys)
+                specialBlockTextBuilder.AppendFormat("<color=Green>{0}<color=White> x {1}\n", trkd.Sbl[x], x);
+            var specialBlockText = specialBlockTextBuilder.ToString();
+
+            var massString = $"{trkd.Mass}";
+
+            var thrustInKilograms = icubeG.GetMaxThrustInDirection(Base6Directions.Direction.Backward) / 9.81f;
+            //float weight = trkd.Mass;
+            var mass = trkd.Mass;
+            var twr = (float)Math.Round(thrustInKilograms / mass, 1);
+
+            if (trkd.Mass > 1000000)
             {
-                var trkd = new ShipTracker(icubeG);
-                var pdInvestment = $"{trkd.PdPercentage}";
-                var pdInvestmentNum = $"{trkd.PdInvest}";
-                var totalShieldString = "None";
-
-                if (trkd.ShieldStrength > 100)
-                    totalShieldString = $"{trkd.ShieldStrength / 100f:F2} M";
-                else if (trkd.ShieldStrength > 1 && trkd.ShieldStrength < 100)
-                    totalShieldString = $"{trkd.ShieldStrength:F0}0 K";
-
-                var gunTextBuilder = new StringBuilder();
-                foreach (var x in trkd.GunL.Keys)
-                    gunTextBuilder.AppendFormat("<color=Green>{0}<color=White> x {1}\n", trkd.GunL[x], x);
-                var gunText = gunTextBuilder.ToString();
-
-                var specialBlockTextBuilder = new StringBuilder();
-                foreach (var x in trkd.Sbl.Keys)
-                    specialBlockTextBuilder.AppendFormat("<color=Green>{0}<color=White> x {1}\n", trkd.Sbl[x], x);
-                var specialBlockText = specialBlockTextBuilder.ToString();
-
-                var massString = $"{trkd.Mass}";
-
-                var thrustInKilograms = icubeG.GetMaxThrustInDirection(Base6Directions.Direction.Backward) / 9.81f;
-                //float weight = trkd.Mass;
-                var mass = trkd.Mass;
-                var twr = (float)Math.Round(thrustInKilograms / mass, 1);
-
-                if (trkd.Mass > 1000000)
-                {
-                    massString = $"{Math.Round(trkd.Mass / 1000000f, 1):F2}m";
-                }
-
-                var twRs = $"{twr:F3}";
-                var thrustString = $"{Math.Round(trkd.InstalledThrust, 1)}";
-
-                if (trkd.InstalledThrust > 1000000)
-                    thrustString = $"{Math.Round(trkd.InstalledThrust / 1000000f, 1):F2}M";
-
-                var playerName = trkd.Owner == null ? trkd.GridName : trkd.Owner.DisplayName;
-                var factionName = trkd.Owner == null
-                    ? ""
-                    : MyAPIGateway.Session?.Factions?.TryGetPlayerFaction(trkd.OwnerId)?.Name;
-
-                var speed = icubeG.GridSizeEnum == MyCubeSize.Large
-                    ? MyDefinitionManager.Static.EnvironmentDefinition.LargeShipMaxSpeed
-                    : MyDefinitionManager.Static.EnvironmentDefinition.SmallShipMaxSpeed;
-                var reducedAngularSpeed = 0f;
-
-                if (RtsApi != null && RtsApi.IsReady)
-                {
-                    speed = (float)Math.Round(RtsApi.GetMaxSpeed(icubeG), 2);
-                    reducedAngularSpeed = RtsApi.GetReducedAngularSpeed(icubeG);
-                }
-
-
-                var pwrNotation = trkd.CurrentPower > 1000 ? "GW" : "MW";
-                var tempPwr = trkd.CurrentPower > 1000
-                    ? $"{Math.Round(trkd.CurrentPower / 1000, 1):F1}"
-                    : Math.Round(trkd.CurrentPower, 1).ToString();
-                var pwr = tempPwr + pwrNotation;
-
-                var gyroString = $"{Math.Round(trkd.CurrentGyro, 1)}";
-
-                double tempGyro2;
-                if (trkd.CurrentGyro >= 1000000)
-                {
-                    tempGyro2 = Math.Round(trkd.CurrentGyro / 1000000f, 1);
-                    if (tempGyro2 > 1000)
-                        gyroString = $"{Math.Round(tempGyro2 / 1000, 1):F1}G";
-                    else
-                        gyroString = $"{Math.Round(tempGyro2, 1):F1}M";
-                }
-
-
-                var sb = new StringBuilder();
-
-                // Basic Info
-                sb.AppendLine("----Basic Info----");
-                sb.AppendFormat("<color=White>{0} ", icubeG.DisplayName);
-                sb.AppendFormat("<color=Green>Owner<color=White>: {0} ", playerName);
-                sb.AppendFormat("<color=Green>Faction<color=White>: {0}\n", factionName);
-                sb.AppendFormat("<color=Green>Mass<color=White>: {0} kg\n", massString);
-                sb.AppendFormat("<color=Green>Heavy blocks<color=White>: {0}\n", trkd.Heavyblocks);
-                sb.AppendFormat("<color=Green>Total blocks<color=White>: {0}\n", trkd.BlockCount);
-                sb.AppendFormat("<color=Green>PCU<color=White>: {0}\n", trkd.Pcu);
-                sb.AppendFormat("<color=Green>Size<color=White>: {0}\n",
-                    (icubeG.Max + Vector3.Abs(icubeG.Min)).ToString());
-                // sb.AppendFormat("<color=Green>Max Speed<color=White>: {0} | <color=Green>TWR<color=White>: {1}\n", speed, TWRs);
-                sb.AppendFormat(
-                    "<color=Green>Max Speed<color=White>: {0} | <color=Green>Reduced Angular Speed<color=White>: {1:F2} | <color=Green>TWR<color=White>: {2}\n",
-                    speed, reducedAngularSpeed, twRs);
-                sb.AppendLine(); //blank line
-
-                // Battle Stats
-                sb.AppendLine("<color=Orange>----Battle Stats----");
-                sb.AppendFormat("<color=Green>Battle Points<color=White>: {0}\n", trkd.Bpts);
-                sb.AppendFormat(
-                    "<color=Orange>[<color=Red> {0}% <color=Orange>| <color=Green>{1}% <color=Orange>| <color=DeepSkyBlue>{2}% <color=Orange>| <color=LightGray>{3}% <color=Orange>]\n",
-                    trkd.OffensivePercentage, trkd.PowerPercentage, trkd.MovementPercentage, trkd.MiscPercentage);
-                sb.AppendFormat(
-                    "<color=Green>PD Investment<color=White>: <color=Orange>( <color=white>{0}% <color=Orange>|<color=Crimson> {1}%<color=Orange> )\n",
-                    pdInvestmentNum, pdInvestment);
-                sb.AppendFormat(
-                    "<color=Green>Shield Max HP<color=White>: {0} <color=Orange>(<color=White>{1}%<color=Orange>)\n",
-                    totalShieldString, (int)trkd.CurrentShieldStrength);
-                sb.AppendFormat("<color=Green>Thrust<color=White>: {0}N\n", thrustString);
-                sb.AppendFormat("<color=Green>Gyro<color=White>: {0}N\n", gyroString);
-                sb.AppendFormat("<color=Green>Power<color=White>: {0}\n", pwr);
-                sb.AppendLine(); //blank line
-                // Blocks Info
-                sb.AppendLine("<color=Orange>----Blocks----");
-                sb.AppendLine(specialBlockText);
-                sb.AppendLine(); //blank line
-                // Armament Info
-                sb.AppendLine("<color=Orange>----Armament----");
-                sb.Append(gunText);
-
-                var tempText = sb.ToString();
-                StatMessage.Message.Clear();
-                StatMessage.Message.Append(tempText);
-                StatMessage.Visible = true;
+                massString = $"{Math.Round(trkd.Mass / 1000000f, 1):F2}m";
             }
+
+            var twRs = $"{twr:F3}";
+            var thrustString = $"{Math.Round(trkd.InstalledThrust, 1)}";
+
+            if (trkd.InstalledThrust > 1000000)
+                thrustString = $"{Math.Round(trkd.InstalledThrust / 1000000f, 1):F2}M";
+
+            var playerName = trkd.Owner == null ? trkd.GridName : trkd.Owner.DisplayName;
+            var factionName = trkd.Owner == null
+                ? ""
+                : MyAPIGateway.Session?.Factions?.TryGetPlayerFaction(trkd.OwnerId)?.Name;
+
+            var speed = icubeG.GridSizeEnum == MyCubeSize.Large
+                ? MyDefinitionManager.Static.EnvironmentDefinition.LargeShipMaxSpeed
+                : MyDefinitionManager.Static.EnvironmentDefinition.SmallShipMaxSpeed;
+            var reducedAngularSpeed = 0f;
+
+            if (RtsApi != null && RtsApi.IsReady)
+            {
+                speed = (float)Math.Round(RtsApi.GetMaxSpeed(icubeG), 2);
+                reducedAngularSpeed = RtsApi.GetReducedAngularSpeed(icubeG);
+            }
+
+
+            var pwrNotation = trkd.CurrentPower > 1000 ? "GW" : "MW";
+            var tempPwr = trkd.CurrentPower > 1000
+                ? $"{Math.Round(trkd.CurrentPower / 1000, 1):F1}"
+                : Math.Round(trkd.CurrentPower, 1).ToString();
+            var pwr = tempPwr + pwrNotation;
+
+            var gyroString = $"{Math.Round(trkd.CurrentGyro, 1)}";
+
+            double tempGyro2;
+            if (trkd.CurrentGyro >= 1000000)
+            {
+                tempGyro2 = Math.Round(trkd.CurrentGyro / 1000000f, 1);
+                if (tempGyro2 > 1000)
+                    gyroString = $"{Math.Round(tempGyro2 / 1000, 1):F1}G";
+                else
+                    gyroString = $"{Math.Round(tempGyro2, 1):F1}M";
+            }
+
+
+            var sb = new StringBuilder();
+
+            // Basic Info
+            sb.AppendLine("----Basic Info----");
+            sb.AppendFormat("<color=White>{0} ", icubeG.DisplayName);
+            sb.AppendFormat("<color=Green>Owner<color=White>: {0} ", playerName);
+            sb.AppendFormat("<color=Green>Faction<color=White>: {0}\n", factionName);
+            sb.AppendFormat("<color=Green>Mass<color=White>: {0} kg\n", massString);
+            sb.AppendFormat("<color=Green>Heavy blocks<color=White>: {0}\n", trkd.Heavyblocks);
+            sb.AppendFormat("<color=Green>Total blocks<color=White>: {0}\n", trkd.BlockCount);
+            sb.AppendFormat("<color=Green>PCU<color=White>: {0}\n", trkd.Pcu);
+            sb.AppendFormat("<color=Green>Size<color=White>: {0}\n",
+                (icubeG.Max + Vector3.Abs(icubeG.Min)).ToString());
+            // sb.AppendFormat("<color=Green>Max Speed<color=White>: {0} | <color=Green>TWR<color=White>: {1}\n", speed, TWRs);
+            sb.AppendFormat(
+                "<color=Green>Max Speed<color=White>: {0} | <color=Green>Reduced Angular Speed<color=White>: {1:F2} | <color=Green>TWR<color=White>: {2}\n",
+                speed, reducedAngularSpeed, twRs);
+            sb.AppendLine(); //blank line
+
+            // Battle Stats
+            sb.AppendLine("<color=Orange>----Battle Stats----");
+            sb.AppendFormat("<color=Green>Battle Points<color=White>: {0}\n", trkd.Bpts);
+            sb.AppendFormat(
+                "<color=Orange>[<color=Red> {0}% <color=Orange>| <color=Green>{1}% <color=Orange>| <color=DeepSkyBlue>{2}% <color=Orange>| <color=LightGray>{3}% <color=Orange>]\n",
+                trkd.OffensivePercentage, trkd.PowerPercentage, trkd.MovementPercentage, trkd.MiscPercentage);
+            sb.AppendFormat(
+                "<color=Green>PD Investment<color=White>: <color=Orange>( <color=white>{0}% <color=Orange>|<color=Crimson> {1}%<color=Orange> )\n",
+                pdInvestmentNum, pdInvestment);
+            sb.AppendFormat(
+                "<color=Green>Shield Max HP<color=White>: {0} <color=Orange>(<color=White>{1}%<color=Orange>)\n",
+                totalShieldString, (int)trkd.CurrentShieldStrength);
+            sb.AppendFormat("<color=Green>Thrust<color=White>: {0}N\n", thrustString);
+            sb.AppendFormat("<color=Green>Gyro<color=White>: {0}N\n", gyroString);
+            sb.AppendFormat("<color=Green>Power<color=White>: {0}\n", pwr);
+            sb.AppendLine(); //blank line
+            // Blocks Info
+            sb.AppendLine("<color=Orange>----Blocks----");
+            sb.AppendLine(specialBlockText);
+            sb.AppendLine(); //blank line
+            // Armament Info
+            sb.AppendLine("<color=Orange>----Armament----");
+            sb.Append(gunText);
+
+            StatMessage.Message = sb;
+            StatMessage.Visible = true;
         }
 
         private void BattleShiftTHandling()
@@ -1001,7 +883,7 @@ namespace klime.PointCheck
 
         private void BattleShiftTCalcs(IMyCubeGrid icubeG)
         {
-            if (icubeG?.Physics != null && PointCheckHelpers.Timer % 60 == 0)
+            if (icubeG?.Physics != null && MatchTimer.I.Ticks % 60 == 0)
             {
                 var tracked = new ShipTracker(icubeG);
                 var totalShield = tracked.ShieldStrength;
@@ -1074,7 +956,7 @@ namespace klime.PointCheck
 
         private void UpdateTrackingData()
         {
-            if (PointCheckHelpers.Timer % 60 == 0 && IntegretyMessage != null && _textApi.Heartbeat)
+            if (MatchTimer.I.Ticks % 60 == 0 && IntegretyMessage != null && _textApi.Heartbeat)
             {
                 var tt = new StringBuilder();
 
@@ -1100,7 +982,7 @@ namespace klime.PointCheck
 
                 var autotrackenabled = false;
                 // Autotrack players when match is running, set above bool to true to enable
-                if (PointCheckHelpers.Timer % 240 == 0 && autotrackenabled)
+                if (MatchTimer.I.Ticks % 240 == 0 && autotrackenabled)
                 {
                     var ce = MyAPIGateway.Session.Player?.Controller?.ControlledEntity?.Entity;
                     var ck = ce as IMyCockpit;
@@ -1306,20 +1188,14 @@ namespace klime.PointCheck
     {
         public static bool HasBlockWithSubtypeId(this IMyCubeGrid grid, string subtypeId)
         {
-            var found = false;
+            List<IMySlimBlock> allBlocks = new List<IMySlimBlock>();
+            grid?.GetBlocks(allBlocks, block => block.FatBlock != null);
 
-            grid.GetBlocks(null, delegate(IMySlimBlock block)
-            {
-                if (block.FatBlock != null && block.BlockDefinition.Id.SubtypeName == subtypeId)
-                {
-                    found = true;
-                    return false; // Stop the GetBlocks iteration once a matching block is found
-                }
+            foreach (IMySlimBlock block in allBlocks)
+                if (block.BlockDefinition.Id.SubtypeName == subtypeId)
+                    return true;
 
-                return false;
-            });
-
-            return found;
+            return false;
         }
     }
 }

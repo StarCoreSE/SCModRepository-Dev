@@ -78,11 +78,14 @@ namespace SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.
             MatchTimerPacket.Unregister();
         }
 
-        private int _ticks;
+        /// <summary>
+        /// NON-SYNCHRONIZED tick counter, incremented once per UpdateAfterSimulation().
+        /// </summary>
+        public int Ticks = 0;
 
         public override void UpdateAfterSimulation()
         {
-            _ticks++;
+            Ticks++;
             //MyAPIGateway.Utilities.SendModMessage(ModMessageId, CurrentMatchTime);
 
             if (DateTime.UtcNow > EndTime && !IsMatchEnded && MyAPIGateway.Session.IsServer)
@@ -92,7 +95,7 @@ namespace SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.
             }
 
             // Update every 10 seconds if is server
-            if (!MyAPIGateway.Session.IsServer || _ticks % TimerUpdateInterval != 0)
+            if (!MyAPIGateway.Session.IsServer || Ticks % TimerUpdateInterval != 0)
                 return;
 
             MatchTimerPacket.SendMatchUpdate(this);
@@ -125,6 +128,12 @@ namespace SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.
         {
             StartTime = packet.MatchStartTime();
             EndTime = packet.MatchEndTime();
+        }
+
+        public void SetMatchTime(double timeMinutes)
+        {
+            EndTime = DateTime.UtcNow + TimeSpan.FromMinutes(MatchDurationMinutes - timeMinutes);
+            StartTime = DateTime.UtcNow - TimeSpan.FromMinutes(timeMinutes);
         }
 
         #endregion

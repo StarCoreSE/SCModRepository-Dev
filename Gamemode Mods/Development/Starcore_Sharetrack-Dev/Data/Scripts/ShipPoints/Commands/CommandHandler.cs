@@ -54,7 +54,7 @@ namespace ShipPoints.Commands
                 "Assigns teams to [arg1] v [arg2] v [arg3].",
                 CommandMethods.SetTeams
             ),
-            ["settime"] = new Command(
+            ["setwintime"] = new Command(
                 "ShareTrack.Match.Config",
                 "Sets the current win time to [arg1] in minutes.",
                 CommandMethods.SetWinTime
