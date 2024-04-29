@@ -554,13 +554,6 @@ namespace klime.PointCheck
             {
                 shipTracker.LastUpdate--;
 
-                if (shipTracker.LastUpdate <= 0)
-                {
-                    shipTracker.DisposeHud();
-                    TrackingManager.I.TrackedGrids.Remove(shipTracker.Grid);
-                    continue;
-                }
-
                 var fn = shipTracker.FactionName;
                 var o = shipTracker.OwnerName;
                 var nd = shipTracker.IsFunctional;

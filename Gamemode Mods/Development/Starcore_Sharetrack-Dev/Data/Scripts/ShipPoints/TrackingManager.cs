@@ -83,6 +83,9 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
 
         public void UntrackGrid(IMyCubeGrid grid, bool share = true)
         {
+            if (!TrackedGrids.ContainsKey(grid))
+                return;
+
             TrackedGrids[grid].DisposeHud();
             TrackedGrids.Remove(grid);
 
@@ -166,8 +169,13 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             var grid = (IMyCubeGrid) entity;
 
             AllGrids.Remove(grid);
-            TrackedGrids[grid].DisposeHud();
-            TrackedGrids.Remove(grid);
+
+            if (TrackedGrids.ContainsKey(grid))
+            {
+                TrackedGrids[grid].DisposeHud();
+                TrackedGrids.Remove(grid);
+            }
+            
             _queuedGridTracks.Remove(grid.EntityId);
         }
 
