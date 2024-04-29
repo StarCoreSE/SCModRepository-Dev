@@ -101,17 +101,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             var cockpit = MyAPIGateway.Session.ControlledObject?.Entity as IMyCockpit;
             if (cockpit == null || MyAPIGateway.Session.IsCameraUserControlledSpectator)
             {
-                var camMat = MyAPIGateway.Session.Camera.WorldMatrix;
-                var hits = new List<MyLineSegmentOverlapResult<MyEntity>>();
-                var ray = new LineD(camMat.Translation, camMat.Translation + camMat.Forward * 500);
-                MyGamePruningStructure.GetTopmostEntitiesOverlappingRay(ref ray, hits);
-                foreach (var hit in hits)
-                {
-                    var grid = hit.Element as IMyCubeGrid;
-
-                    if (grid?.Physics != null)
-                        return grid;
-                }
+                return PointCheck.RaycastGridFromCamera();
             }
             else if (cockpit.CubeGrid?.Physics != null) // user is in cockpit
             {

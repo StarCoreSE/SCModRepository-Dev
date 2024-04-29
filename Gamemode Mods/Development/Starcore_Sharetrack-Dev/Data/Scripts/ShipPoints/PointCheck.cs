@@ -21,6 +21,7 @@ using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.Input;
+using VRage.ModAPI;
 using VRage.Utils;
 using VRageMath;
 using static Math0424.Networking.MyNetworkHandler;
@@ -42,18 +43,14 @@ namespace klime.PointCheck
         public const ushort ComId = 42511;
         public const string Keyword = "/debug";
         public const string DisplayName = "Debug";
-        private const double CombatRadius = 12500;
         public static NetSync<int> ServerMatchState;
         public static int LocalMatchState;
-        public static bool _amTheCaptainNow;
-        public static int LocalGameModeSwitch = 3;
+        public static bool AmTheCaptainNow;
         public static int LocalProblemSwitch;
         public static Dictionary<string, int> PointValues = new Dictionary<string, int>();
 
-        private static readonly Dictionary<long, List<ulong>> SendingDictionary = new Dictionary<long, List<ulong>>();
-        public static Dictionary<long, List<ulong>> Sending = SendingDictionary;
-        private static readonly Dictionary<long, ShipTracker> DataDictionary = new Dictionary<long, ShipTracker>();
-        public static Dictionary<long, ShipTracker> Data = DataDictionary;
+        public static Dictionary<long, List<ulong>> Sending = new Dictionary<long, List<ulong>>();
+        public static Dictionary<long, ShipTracker> Data = new Dictionary<long, ShipTracker>();
         public static HashSet<long> Tracking = new HashSet<long>();
         private static readonly Dictionary<long, IMyPlayer> AllPlayers = new Dictionary<long, IMyPlayer>();
         private static readonly List<IMyPlayer> ListPlayers = new List<IMyPlayer>();
@@ -70,12 +67,10 @@ namespace klime.PointCheck
         public static int Decaytime = 180;
         public static int Delaytime = 60; //debug
         public static int MatchTickets = 1500;
-        public static int TempServerTimer;
 
 
-        private readonly List<MyEntity> _managedEntities = new List<MyEntity>(1000);
+        private HashSet<IMyEntity> _managedEntities = new HashSet<IMyEntity>();
 
-        private BoundingSphereD _combatMaxSphere = new BoundingSphereD(Vector3D.Zero, CombatRadius + 22500);
         private int _count;
         private int _fastStart;
 
@@ -85,7 +80,6 @@ namespace klime.PointCheck
         // Get the sphere model based on the given cap color
 
         private bool _doClientRequest = true;
-        public NetSync<int> GameModeSwitch;
         private bool _joinInit;
         private readonly Dictionary<string, double> _m = new Dictionary<string, double>();
         private readonly Dictionary<string, int> _mbp = new Dictionary<string, int>();
@@ -102,15 +96,14 @@ namespace klime.PointCheck
         public NetSync<int> Team2Tickets;
         public NetSync<string> Team3;
         public NetSync<int> Team3Tickets;
-        public int TempLocalTimer;
 
-        public HudAPIv2 TextHudApi;
 
         public NetSync<int> ThreeTeams;
 
         // todo: remove this and replace with old solution for just combining BP and mass
         private readonly Dictionary<string, List<string>> _ts = new Dictionary<string, List<string>>();
-        private ProblemReportState _vProblemReportState = ProblemReportState.ThisIsFine;
+
+        public HudAPIv2 TextHudApi { get; private set; }
         public WcApi WcApi { get; private set; }
         public ShieldApi ShApi { get; private set; }
         public RtsApi RtsApi { get; private set; }
@@ -118,7 +111,6 @@ namespace klime.PointCheck
         private HudPointsList _hudPointsList;
 
 
-        //end visual
         public override void Init(MyObjectBuilder_SessionComponent sessionComponent)
         {
             MyNetworkHandler.Init();
@@ -144,7 +136,6 @@ namespace klime.PointCheck
             ServerMatchState = CreateNetSync(0);
 
             ThreeTeams = CreateNetSync(0);
-            GameModeSwitch = CreateNetSync(3);
 
             //ProblemSwitch = CreateNetSync<int>(0);
         }
@@ -156,7 +147,6 @@ namespace klime.PointCheck
 
         public static void Begin()
         {
-            TempServerTimer = 0;
             MatchTimer.I.Ticks = 0;
             Broadcaststat = true;
             if (TimerMessage != null)
@@ -172,7 +162,6 @@ namespace klime.PointCheck
 
         public static void EndMatch()
         {
-            TempServerTimer = 0;
             MatchTimer.I.Ticks = 0;
             Broadcaststat = false;
             if (TimerMessage != null)
@@ -180,7 +169,7 @@ namespace klime.PointCheck
             if (Ticketmessage != null)
                 Ticketmessage.Visible = false;
             LocalMatchState = 0;
-            _amTheCaptainNow = false;
+            AmTheCaptainNow = false;
             MatchTimer.I.Stop();
             MyAPIGateway.Utilities.ShowNotification("Match Ended.");
         }
@@ -243,7 +232,6 @@ namespace klime.PointCheck
 
         public override void BeforeStart()
         {
-            //base.BeforeStart();
             // Check if the current instance is not a dedicated server
             if (!MyAPIGateway.Utilities.IsDedicated)
                 // Initialize the sphere entities
@@ -273,21 +261,18 @@ namespace klime.PointCheck
                 blend: BlendTypeEnum.PostPP)
             {
                 Visible = true
-                //InitialColor = Color.Orange
             };
             TimerMessage = new HudAPIv2.HUDMessage(scale: 1.2f, font: "BI_SEOutlined", Message: new StringBuilder(""),
                 origin: new Vector2D(0.35, .99), hideHud: false, shadowing: true, blend: BlendTypeEnum.PostPP)
             {
                 Visible = false, //defaulted off?
                 InitialColor = Color.White
-                //ShadowColor = Color.Black
             };
             Ticketmessage = new HudAPIv2.HUDMessage(scale: 1f, font: "BI_SEOutlined", Message: new StringBuilder(""),
                 origin: new Vector2D(0.51, .99), hideHud: false, shadowing: true, blend: BlendTypeEnum.PostPP)
             {
                 Visible = false, //defaulted off?
                 InitialColor = Color.White
-                //ShadowColor = Color.Black
             };
 
             Problemmessage = new HudAPIv2.HUDMessage(scale: 2f, font: "BI_SEOutlined", Message: new StringBuilder(""),
@@ -295,7 +280,6 @@ namespace klime.PointCheck
             {
                 Visible = false, //defaulted off?
                 InitialColor = Color.White
-                //ShadowColor = Color.Black
             };
         }
 
@@ -308,17 +292,9 @@ namespace klime.PointCheck
                 _doClientRequest = false;
             }
 
-            TempLocalTimer++;
             if (MatchTimer.I.Ticks >= 144000)
             {
                 MatchTimer.I.Ticks = 0;
-                TempLocalTimer = 0;
-                TempServerTimer = 0;
-            }
-
-            if (Broadcaststat && !_amTheCaptainNow && TempLocalTimer % 60 == 0)
-            {
-                TempLocalTimer = 0;
             }
 
             try
@@ -341,24 +317,22 @@ namespace klime.PointCheck
                             Team2Tickets.Fetch();
                             Team3Tickets.Fetch();
                             ThreeTeams.Fetch();
-                            GameModeSwitch.Fetch();
-                            LocalGameModeSwitch = GameModeSwitch.Value;
                             _joinInit = true;
                         }
                     }
                 }
 
-                if (!MyAPIGateway.Utilities.IsDedicated && TempLocalTimer % 60 == 0)
+                if (!MyAPIGateway.Utilities.IsDedicated && MatchTimer.I.Ticks % 60 == 0)
                 {
                     if (ServerMatchState.Value == 1 && Broadcaststat == false) Broadcaststat = true;
-                    if (!MyAPIGateway.Utilities.IsDedicated && _amTheCaptainNow)
+                    if (!MyAPIGateway.Utilities.IsDedicated && AmTheCaptainNow)
                         ServerMatchState.Value = LocalMatchState;
-                    else if (!MyAPIGateway.Utilities.IsDedicated && !_amTheCaptainNow)
+                    else if (!MyAPIGateway.Utilities.IsDedicated && !AmTheCaptainNow)
                         LocalMatchState = ServerMatchState.Value;
                 }
 
                 if (Broadcaststat && MatchTimer.I.Ticks % 60 == 0)
-                    if (_amTheCaptainNow && ServerMatchState.Value != 1)
+                    if (AmTheCaptainNow && ServerMatchState.Value != 1)
                         ServerMatchState.Value = 1;
             }
             catch (Exception e)
@@ -415,13 +389,11 @@ namespace klime.PointCheck
             {
                 if (MatchTimer.I.Ticks % 60 == 0 && Broadcaststat)
                 {
-                    var tick100 = _count % 100 == 0;
                     _count++;
-                    if (_count - _fastStart < 300 || tick100)
+                    if (_count - _fastStart < 300 || _count % 100 == 0)
                     {
                         _managedEntities.Clear();
-                        MyGamePruningStructure.GetAllTopMostEntitiesInSphere(ref _combatMaxSphere, _managedEntities,
-                            MyEntityQueryType.Dynamic);
+                        MyAPIGateway.Entities.GetEntities(_managedEntities, entity => entity is IMyCubeGrid);
                         foreach (var entity in _managedEntities)
                         {
                             var grid = entity as MyCubeGrid;
@@ -467,120 +439,34 @@ namespace klime.PointCheck
         public override void Draw()
         {
             //if you are the server do nothing here
-            if (MyAPIGateway.Utilities.IsDedicated)
+            if (MyAPIGateway.Utilities.IsDedicated || !TextHudApi.Heartbeat)
                 return;
             try
             {
-                var promoLevel = MyAPIGateway.Session.PromoteLevel;
-
                 if (MyAPIGateway.Session?.Camera != null && MyAPIGateway.Session.CameraController != null && !MyAPIGateway.Gui.ChatEntryVisible &&
                     !MyAPIGateway.Gui.IsCursorVisible && MyAPIGateway.Gui.GetCurrentScreen == MyTerminalPageEnum.None)
                 {
-                    if (MyAPIGateway.Input.IsAnyShiftKeyPressed())
-                    {
-                        if (MyAPIGateway.Input.IsNewKeyPressed(MyKeys.T))
-                        {
-                            _hudPointsList?.CycleViewState();
-                        }
-
-                        if (promoLevel >= MyPromoteLevel.Moderator)
-                        {
-                            var camMat = MyAPIGateway.Session.Camera.WorldMatrix;
-                            IHitInfo hits;
-                            var keyAndActionPairs = new Dictionary<MyKeys, Action>
-                            {
-                                {
-                                    MyKeys.M, () =>
-                                    {
-                                        MyAPIGateway.Physics.CastRay(camMat.Translation + camMat.Forward * 0.5,
-                                            camMat.Translation + camMat.Forward * 500, out hits);
-                                        if (hits?.HitEntity is IMyCubeGrid)
-                                        {
-                                            var packet = new PacketGridData
-                                            {
-                                                Id = hits.HitEntity.EntityId,
-                                                Value = (byte)(Tracking.Contains(hits.HitEntity.EntityId) ? 2 : 1)
-                                            };
-                                            Static.MyNetwork.TransmitToServer(packet);
-
-                                            if (packet.Value == 1)
-                                            {
-                                                MyAPIGateway.Utilities.ShowNotification(
-                                                    "ShipTracker: Added grid to tracker");
-                                                Tracking.Add(hits.HitEntity.EntityId);
-                                                if (!IntegretyMessage.Visible) IntegretyMessage.Visible = true;
-                                                Data[hits.HitEntity.EntityId].CreateHud();
-                                            }
-                                            else
-                                            {
-                                                MyAPIGateway.Utilities.ShowNotification(
-                                                    "ShipTracker: Removed grid from tracker");
-                                                Tracking.Remove(hits.HitEntity.EntityId);
-                                                Data[hits.HitEntity.EntityId].DisposeHud();
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    MyKeys.N, () =>
-                                    {
-                                        IntegretyMessage.Visible = !IntegretyMessage.Visible;
-                                        MyAPIGateway.Utilities.ShowNotification("ShipTracker: Hud visibility set to " +
-                                            IntegretyMessage.Visible);
-                                    }
-                                },
-                                {
-                                    MyKeys.B, () =>
-                                    {
-                                        TimerMessage.Visible = !TimerMessage.Visible;
-                                        Ticketmessage.Visible = !Ticketmessage.Visible;
-                                        MyAPIGateway.Utilities.ShowNotification(
-                                            "ShipTracker: Timer visibility set to " + TimerMessage.Visible);
-                                    }
-                                },
-                                {
-                                    MyKeys.J, () =>
-                                    {
-                                        Viewstat++;
-                                        if (Viewstat == 4) Viewstat = 0;
-                                        PointCheckHelpers.NameplateVisible = Viewstat != 3;
-                                        MyAPIGateway.Utilities.ShowNotification(
-                                            "ShipTracker: Nameplate visibility set to " + Viewmode[Viewstat]);
-                                    }
-                                }
-                            };
-
-                            foreach (var pair in keyAndActionPairs)
-                                if (MyAPIGateway.Input.IsNewKeyPressed(pair.Key))
-                                    pair.Value.Invoke();
-                        }
-                    }
+                    HandleKeyInputs();
                 }
 
-                _vProblemReportState = LocalProblemSwitch == 1 ? ProblemReportState.ItsOver :
-                    LocalProblemSwitch == 0 ? ProblemReportState.ThisIsFine : _vProblemReportState;
+                foreach (var x in Data.Keys)
+                    if (Tracking.Contains(x))
+                        Data[x].UpdateHud();
+                    else
+                        Data[x].DisposeHud();
 
-                if (TextHudApi.Heartbeat)
-                    foreach (var x in Data.Keys)
-                        if (Tracking.Contains(x))
-                            Data[x].UpdateHud();
-                        else
-                            Data[x].DisposeHud();
-
-                if (_vProblemReportState == ProblemReportState.ItsOver && Problemmessage != null && TextHudApi.Heartbeat)
+                Problemmessage.Message.Clear();
+                switch ((ProblemReportState) LocalProblemSwitch)
                 {
-                    const string tempText = "<color=Red>" + "A PROBLEM HAS BEEN REPORTED," + "\n" +
-                                            "CHECK WITH BOTH TEAMS AND THEN TYPE '/fixed' TO CLEAR THIS MESSAGE";
-
-                    Problemmessage.Message.Clear();
-                    Problemmessage.Message.Append(tempText);
-                    Problemmessage.Visible = true;
-                }
-
-                if (_vProblemReportState == ProblemReportState.ThisIsFine && Problemmessage != null && TextHudApi.Heartbeat)
-                {
-                    Problemmessage.Message.Clear();
-                    Problemmessage.Visible = false;
+                    case ProblemReportState.ItsOver:
+                        const string tempText = "<color=Red>" + "A PROBLEM HAS BEEN REPORTED," + "\n" +
+                                                "CHECK WITH BOTH TEAMS AND THEN TYPE '/fixed' TO CLEAR THIS MESSAGE";
+                        Problemmessage.Message.Append(tempText);
+                        Problemmessage.Visible = true;
+                        break;
+                    case ProblemReportState.ThisIsFine:
+                        Problemmessage.Visible = false;
+                        break;
                 }
 
                 _hudPointsList?.UpdateDraw();
@@ -591,6 +477,82 @@ namespace klime.PointCheck
             {
                 Log.Error($"Exception in Draw: {e}");
             }
+        }
+
+
+        private readonly Dictionary<MyKeys, Action> _keyAndActionPairs = new Dictionary<MyKeys, Action>
+        {
+            {
+                MyKeys.M, () =>
+                {
+                    IMyCubeGrid castGrid = RaycastGridFromCamera();
+                    var packet = new PacketGridData
+                    {
+                        Id = castGrid.EntityId,
+                        Value = (byte)(Tracking.Contains(castGrid.EntityId) ? 2 : 1)
+                    };
+                    Static.MyNetwork.TransmitToServer(packet);
+
+                    if (packet.Value == 1)
+                    {
+                        MyAPIGateway.Utilities.ShowNotification(
+                            "ShipTracker: Added grid to tracker");
+                        Tracking.Add(castGrid.EntityId);
+                        if (!IntegretyMessage.Visible) IntegretyMessage.Visible = true;
+                        Data[castGrid.EntityId].CreateHud();
+                    }
+                    else
+                    {
+                        MyAPIGateway.Utilities.ShowNotification(
+                            "ShipTracker: Removed grid from tracker");
+                        Tracking.Remove(castGrid.EntityId);
+                        Data[castGrid.EntityId].DisposeHud();
+                    }
+                }
+            },
+            {
+                MyKeys.N, () =>
+                {
+                    IntegretyMessage.Visible = !IntegretyMessage.Visible;
+                    MyAPIGateway.Utilities.ShowNotification("ShipTracker: Hud visibility set to " +
+                                                            IntegretyMessage.Visible);
+                }
+            },
+            {
+                MyKeys.B, () =>
+                {
+                    TimerMessage.Visible = !TimerMessage.Visible;
+                    Ticketmessage.Visible = !Ticketmessage.Visible;
+                    MyAPIGateway.Utilities.ShowNotification(
+                        "ShipTracker: Timer visibility set to " + TimerMessage.Visible);
+                }
+            },
+            {
+                MyKeys.J, () =>
+                {
+                    Viewstat++;
+                    if (Viewstat == 4) Viewstat = 0;
+                    PointCheckHelpers.NameplateVisible = Viewstat != 3;
+                    MyAPIGateway.Utilities.ShowNotification(
+                        "ShipTracker: Nameplate visibility set to " + Viewmode[Viewstat]);
+                }
+            }
+        };
+
+        private void HandleKeyInputs()
+        {
+            if (!MyAPIGateway.Input.IsAnyShiftKeyPressed())
+                return;
+
+            if (MyAPIGateway.Input.IsNewKeyPressed(MyKeys.T))
+                _hudPointsList?.CycleViewState();
+
+            if (MyAPIGateway.Session.PromoteLevel < MyPromoteLevel.Moderator)
+                return;
+
+            foreach (var pair in _keyAndActionPairs)
+                if (MyAPIGateway.Input.IsNewKeyPressed(pair.Key))
+                    pair.Value.Invoke();
         }
 
 
@@ -821,6 +783,23 @@ namespace klime.PointCheck
             MyAPIGateway.Utilities.UnregisterMessageHandler(2546247, AddPointValues);
 
             I = null;
+        }
+
+        public static IMyCubeGrid RaycastGridFromCamera()
+        {
+            var camMat = MyAPIGateway.Session.Camera.WorldMatrix;
+            var hits = new List<MyLineSegmentOverlapResult<MyEntity>>();
+            var ray = new LineD(camMat.Translation, camMat.Translation + camMat.Forward * 500);
+            MyGamePruningStructure.GetTopmostEntitiesOverlappingRay(ref ray, hits);
+            foreach (var hit in hits)
+            {
+                var grid = hit.Element as IMyCubeGrid;
+
+                if (grid?.Physics != null)
+                    return grid;
+            }
+
+            return null;
         }
     }
 

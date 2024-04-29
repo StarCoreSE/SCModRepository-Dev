@@ -19,7 +19,7 @@ namespace ShipPoints.Commands
         public static void Start(string[] args)
         {
             MyNetworkHandler.Static.MyNetwork.TransmitToServer(new BasicPacket(6), true, true);
-            PointCheck._amTheCaptainNow = true;
+            PointCheck.AmTheCaptainNow = true;
             PointCheck.I.Team1Tickets.Value = PointCheck.MatchTickets;
             PointCheck.I.Team2Tickets.Value = PointCheck.MatchTickets;
             PointCheck.LocalMatchState = 1;
@@ -31,7 +31,7 @@ namespace ShipPoints.Commands
         public static void End(string[] args)
         {
             MyNetworkHandler.Static.MyNetwork.TransmitToServer(new BasicPacket(8), true, true);
-            PointCheck._amTheCaptainNow = false;
+            PointCheck.AmTheCaptainNow = false;
             PointCheck.I.Team1Tickets.Value = PointCheck.MatchTickets;
             PointCheck.I.Team2Tickets.Value = PointCheck.MatchTickets;
             PointCheck.I.Team3Tickets.Value = PointCheck.MatchTickets;
@@ -42,13 +42,13 @@ namespace ShipPoints.Commands
 
         public static void TakeOver(string[] args)
         {
-            PointCheck._amTheCaptainNow = true;
+            PointCheck.AmTheCaptainNow = true;
             MyAPIGateway.Utilities.ShowMessage("GM", "You are the captain now.");
         }
 
         public static void GiveUp(string[] args)
         {
-            PointCheck._amTheCaptainNow = false;
+            PointCheck.AmTheCaptainNow = false;
             MyAPIGateway.Utilities.ShowMessage("GM", "You are not the captain now.");
         }
 
@@ -164,53 +164,6 @@ namespace ShipPoints.Commands
             MyAPIGateway.Utilities.ShowMessage("GM", "Teams set to three.");
             PointCheck.I.ThreeTeams.Value = 1;
             PointCheck.I.Team3Tickets.Value = PointCheck.MatchTickets;
-        }
-
-        public static void SetCapMode(string[] args)
-        {
-            try
-            {
-                switch (args[1].ToLower())
-                {
-                    case "0":
-                        MyAPIGateway.Utilities.ShowMessage("GM", "Capture zones set to none.");
-                        PointCheck.I.GameModeSwitch.Value = 4;
-                        PointCheck.LocalGameModeSwitch = 4;
-                        MyNetworkHandler.Static.MyNetwork.TransmitToServer(new BasicPacket(15), true, true);
-                        break;
-                    case "1":
-                        MyAPIGateway.Utilities.ShowMessage("GM", "Capture zones set to one.");
-                        PointCheck.I.GameModeSwitch.Value = 1;
-                        PointCheck.LocalGameModeSwitch = 1;
-                        MyNetworkHandler.Static.MyNetwork.TransmitToServer(new BasicPacket(12), true, true);
-                        break;
-                    case "2":
-                        MyAPIGateway.Utilities.ShowMessage("GM", "Capture zones set to two.");
-                        PointCheck.I.GameModeSwitch.Value = 2;
-                        PointCheck.LocalGameModeSwitch = 2;
-                        MyNetworkHandler.Static.MyNetwork.TransmitToServer(new BasicPacket(13), true, true);
-                        break;
-                    case "3":
-                        MyAPIGateway.Utilities.ShowMessage("GM", "Capture zones set to three.");
-                        PointCheck.I.GameModeSwitch.Value = 3;
-                        PointCheck.LocalGameModeSwitch = 3;
-                        MyNetworkHandler.Static.MyNetwork.TransmitToServer(new BasicPacket(14), true, true);
-                        break;
-                    case "c":
-                        MyAPIGateway.Utilities.ShowMessage("GM", "Capture zones set to crazy.");
-                        PointCheck.I.GameModeSwitch.Value = 4;
-                        PointCheck.LocalGameModeSwitch = 4;
-                        MyNetworkHandler.Static.MyNetwork.TransmitToServer(new BasicPacket(16), true, true);
-                        break;
-                    default:
-                        MyAPIGateway.Utilities.ShowMessage("ShareTrack", "Invalid CapMode.");
-                        break;
-                }
-            }
-            catch (Exception)
-            {
-                MyAPIGateway.Utilities.ShowMessage("ShareTrack", "Invalid CapMode.");
-            }
         }
 
         #endregion

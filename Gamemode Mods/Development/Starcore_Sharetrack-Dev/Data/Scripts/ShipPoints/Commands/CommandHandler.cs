@@ -84,11 +84,6 @@ namespace ShipPoints.Commands
                 "Sets team count to three.",
                 CommandMethods.SetThreeTeams
                 ),
-            ["capmode"] = new Command(
-                "ShareTrack.Match.Config",
-                "Sets the capture zone mode to [arg1, either 0 1 2 3 or c].",
-                CommandMethods.SetCapMode
-                ),
             #endregion
 
             #region Util Commands
