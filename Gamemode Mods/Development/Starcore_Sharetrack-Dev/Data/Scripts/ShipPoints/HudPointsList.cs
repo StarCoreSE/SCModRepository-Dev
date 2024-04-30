@@ -25,7 +25,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
     {
         #region APIs
         private WcApi WcApi => PointCheck.I.WcApi;
-        private ShieldApi ShApi => PointCheck.I.ShApi;
+        private ShieldApi ShApi => PointCheck.I.ShieldApi;
         private RtsApi RtsApi => PointCheck.I.RtsApi;
         private HudAPIv2 TextHudApi => PointCheck.I.TextHudApi;
         #endregion
@@ -46,7 +46,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
                 Visible = false,
                 InitialColor = Color.Orange
             },
-            _statMessageBattleGunlist = new HudAPIv2.HUDMessage(scale: 1.25f, font: "BI_SEOutlined",
+            _statMessageBattleWeaponCountsist = new HudAPIv2.HUDMessage(scale: 1.25f, font: "BI_SEOutlined",
                 Message: new StringBuilder(""), origin: new Vector2D(-.99, .99), hideHud: false, shadowing: true,
                 blend: BlendTypeEnum.PostPP)
             {
@@ -70,9 +70,9 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             if (_viewState > ViewState.InView2)
             {
                 _statMessageBattle.Message.Clear();
-                _statMessageBattleGunlist.Message.Clear();
+                _statMessageBattleWeaponCountsist.Message.Clear();
                 _statMessageBattle.Visible = false;
-                _statMessageBattleGunlist.Visible = false;
+                _statMessageBattleWeaponCountsist.Visible = false;
 
                 _viewState = ViewState.None;
             }
@@ -138,8 +138,8 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             {
                 _statMessageBattle.Message.Clear();
                 _statMessageBattle.Visible = false;
-                _statMessageBattleGunlist.Message.Clear();
-                _statMessageBattleGunlist.Visible = false;
+                _statMessageBattleWeaponCountsist.Message.Clear();
+                _statMessageBattleWeaponCountsist.Visible = false;
             }
         }
 
@@ -152,23 +152,23 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             ShipTracker shipTracker;
             TrackingManager.I.TrackedGrids.TryGetValue(focusedGrid, out shipTracker);
             if (shipTracker == null)
-                return;
+                shipTracker = new ShipTracker(focusedGrid, false);
 
             var totalShieldString = "None";
 
-            if (shipTracker.ShieldStrength > 100)
-                totalShieldString = $"{shipTracker.ShieldStrength / 100f:F2} M";
-            else if (shipTracker.ShieldStrength > 1 && shipTracker.ShieldStrength < 100)
-                totalShieldString = $"{shipTracker.ShieldStrength:F0}0 K";
+            if (shipTracker.CurrentShieldPercent > 100)
+                totalShieldString = $"{shipTracker.CurrentShieldPercent / 100f:F2} M";
+            else if (shipTracker.CurrentShieldPercent > 1 && shipTracker.CurrentShieldPercent < 100)
+                totalShieldString = $"{shipTracker.CurrentShieldPercent:F0}0 K";
 
             var gunTextBuilder = new StringBuilder();
-            foreach (var x in shipTracker.GunL.Keys)
-                gunTextBuilder.AppendFormat("<color=Green>{0}<color=White> x {1}\n", shipTracker.GunL[x], x);
+            foreach (var x in shipTracker.WeaponCounts.Keys)
+                gunTextBuilder.AppendFormat("<color=Green>{0}<color=White> x {1}\n", shipTracker.WeaponCounts[x], x);
             var gunText = gunTextBuilder.ToString();
 
             var specialBlockTextBuilder = new StringBuilder();
-            foreach (var x in shipTracker.Sbl.Keys)
-                specialBlockTextBuilder.AppendFormat("<color=Green>{0}<color=White> x {1}\n", shipTracker.Sbl[x], x);
+            foreach (var x in shipTracker.SpecialBlockCounts.Keys)
+                specialBlockTextBuilder.AppendFormat("<color=Green>{0}<color=White> x {1}\n", shipTracker.SpecialBlockCounts[x], x);
             var specialBlockText = specialBlockTextBuilder.ToString();
 
             var massString = $"{shipTracker.Mass}";
@@ -184,10 +184,10 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             }
 
             var twRs = $"{twr:F3}";
-            var thrustString = $"{Math.Round(shipTracker.InstalledThrust, 1)}";
+            var thrustString = $"{Math.Round(shipTracker.TotalThrust, 1)}";
 
-            if (shipTracker.InstalledThrust > 1000000)
-                thrustString = $"{Math.Round(shipTracker.InstalledThrust / 1000000f, 1):F2}M";
+            if (shipTracker.TotalThrust > 1000000)
+                thrustString = $"{Math.Round(shipTracker.TotalThrust / 1000000f, 1):F2}M";
 
             var playerName = shipTracker.Owner == null ? shipTracker.GridName : shipTracker.Owner.DisplayName;
             var factionName = shipTracker.Owner == null
@@ -206,17 +206,17 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             }
 
 
-            var pwrNotation = shipTracker.CurrentPower > 1000 ? "GW" : "MW";
-            var tempPwr = shipTracker.CurrentPower > 1000
-                ? $"{Math.Round(shipTracker.CurrentPower / 1000, 1):F1}"
-                : Math.Round(shipTracker.CurrentPower, 1).ToString();
+            var pwrNotation = shipTracker.TotalPower > 1000 ? "GW" : "MW";
+            var tempPwr = shipTracker.TotalPower > 1000
+                ? $"{Math.Round(shipTracker.TotalPower / 1000, 1):F1}"
+                : Math.Round(shipTracker.TotalPower, 1).ToString();
             var pwr = tempPwr + pwrNotation;
 
-            var gyroString = $"{Math.Round(shipTracker.CurrentGyro, 1)}";
+            var gyroString = $"{Math.Round(shipTracker.TotalTorque, 1)}";
 
-            if (shipTracker.CurrentGyro >= 1000000)
+            if (shipTracker.TotalTorque >= 1000000)
             {
-                double tempGyro2 = Math.Round(shipTracker.CurrentGyro / 1000000f, 1);
+                double tempGyro2 = Math.Round(shipTracker.TotalTorque / 1000000f, 1);
                 gyroString = tempGyro2 > 1000 ? $"{Math.Round(tempGyro2 / 1000, 1):F1}G" : $"{Math.Round(tempGyro2, 1):F1}M";
             }
 
@@ -229,9 +229,9 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             sb.AppendFormat("<color=Green>Owner<color=White>: {0} ", playerName);
             sb.AppendFormat("<color=Green>Faction<color=White>: {0}\n", factionName);
             sb.AppendFormat("<color=Green>Mass<color=White>: {0} kg\n", massString);
-            sb.AppendFormat("<color=Green>Heavy blocks<color=White>: {0}\n", shipTracker.Heavyblocks);
+            sb.AppendFormat("<color=Green>Heavy blocks<color=White>: {0}\n", shipTracker.HeavyArmorCount);
             sb.AppendFormat("<color=Green>Total blocks<color=White>: {0}\n", shipTracker.BlockCount);
-            sb.AppendFormat("<color=Green>PCU<color=White>: {0}\n", shipTracker.Pcu);
+            sb.AppendFormat("<color=Green>PCU<color=White>: {0}\n", shipTracker.PCU);
             sb.AppendFormat("<color=Green>Size<color=White>: {0}\n",
                 (focusedGrid.Max + Vector3.Abs(focusedGrid.Min)).ToString());
             // sb.AppendFormat("<color=Green>Max Speed<color=White>: {0} | <color=Green>TWR<color=White>: {1}\n", speed, TWRs);
@@ -242,15 +242,15 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
 
             // Battle Stats
             sb.AppendLine("<color=Orange>----Battle Stats----");
-            sb.AppendFormat("<color=Green>Battle Points<color=White>: {0}\n", shipTracker.Bpts);
+            sb.AppendFormat("<color=Green>Battle Points<color=White>: {0}\n", shipTracker.BattlePoints);
             sb.AppendFormat(
                 "<color=Orange>[<color=Red> {0}% <color=Orange>| <color=Green>{1}% <color=Orange>| <color=DeepSkyBlue>{2}% <color=Orange>| <color=LightGray>{3}% <color=Orange>]\n",
-                shipTracker.OffensivePercentage, shipTracker.PowerPercentage, shipTracker.MovementPercentage, shipTracker.MiscPercentage);
+                shipTracker.OffensivePoints / shipTracker.BattlePoints, shipTracker.PowerPoints / shipTracker.BattlePoints, shipTracker.MovementPoints / shipTracker.BattlePoints, shipTracker.RemainingPoints / shipTracker.BattlePoints);
             sb.Append(
-                $"<color=Green>PD Investment<color=White>: <color=Orange>( <color=white>{shipTracker.PdInvest}% <color=Orange>|<color=Crimson> {shipTracker.PdPercentage}%<color=Orange> )\n");
+                $"<color=Green>PD Investment<color=White>: <color=Orange>( <color=white>{shipTracker.PointDefensePoints / shipTracker.BattlePoints}% <color=Orange>|<color=Crimson> {shipTracker.PointDefensePoints / shipTracker.OffensivePoints}%<color=Orange> )\n");
             sb.AppendFormat(
                 "<color=Green>Shield Max HP<color=White>: {0} <color=Orange>(<color=White>{1}%<color=Orange>)\n",
-                totalShieldString, (int)shipTracker.CurrentShieldStrength);
+                totalShieldString, (int)shipTracker.MaxShieldHealth);
             sb.AppendFormat("<color=Green>Thrust<color=White>: {0}N\n", thrustString);
             sb.AppendFormat("<color=Green>Gyro<color=White>: {0}N\n", gyroString);
             sb.AppendFormat("<color=Green>Power<color=White>: {0}\n", pwr);
@@ -273,7 +273,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
                 return;
 
             var tracked = new ShipTracker(focusedGrid);
-            var totalShield = tracked.ShieldStrength;
+            var totalShield = tracked.CurrentShieldPercent;
             var totalShieldString = totalShield > 100
                 ? $"{Math.Round(totalShield / 100f, 2):F2} M"
                 : totalShield > 1
@@ -300,28 +300,28 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             _speedTextBuilder.Append($"\n<color=Green>Negative Influence<color=White>: {negativeInfluence:F2}");
 
             _gunTextBuilder.Clear();
-            foreach (var x in tracked.GunL)
+            foreach (var x in tracked.WeaponCounts)
                 _gunTextBuilder.Append($"<color=Green>{x.Value} x <color=White>{x.Key}\n");
 
-            var thrustString = $"{Math.Round(tracked.InstalledThrust, 1)}";
-            if (tracked.InstalledThrust > 1000000)
-                thrustString = $"{Math.Round(tracked.InstalledThrust / 1000000f, 1):F2}M";
+            var thrustString = $"{Math.Round(tracked.TotalThrust, 1)}";
+            if (tracked.TotalThrust > 1000000)
+                thrustString = $"{Math.Round(tracked.TotalThrust / 1000000f, 1):F2}M";
 
-            var gyroString = $"{Math.Round(tracked.CurrentGyro, 1)}";
+            var gyroString = $"{Math.Round(tracked.TotalTorque, 1)}";
             double tempGyro2;
-            if (tracked.CurrentGyro >= 1000000)
+            if (tracked.TotalTorque >= 1000000)
             {
-                tempGyro2 = Math.Round(tracked.CurrentGyro / 1000000f, 1);
+                tempGyro2 = Math.Round(tracked.TotalTorque / 1000000f, 1);
                 if (tempGyro2 > 1000)
                     gyroString = $"{Math.Round(tempGyro2 / 1000, 1):F1}G";
                 else
                     gyroString = $"{Math.Round(tempGyro2, 1):F1}M";
             }
 
-            var pwrNotation = tracked.CurrentPower > 1000 ? "GW" : "MW";
-            var tempPwr = tracked.CurrentPower > 1000
-                ? $"{Math.Round(tracked.CurrentPower / 1000, 1):F1}"
-                : Math.Round(tracked.CurrentPower, 1).ToString();
+            var pwrNotation = tracked.TotalPower > 1000 ? "GW" : "MW";
+            var tempPwr = tracked.TotalPower > 1000
+                ? $"{Math.Round(tracked.TotalPower / 1000, 1):F1}"
+                : Math.Round(tracked.TotalPower, 1).ToString();
             var pwr = tempPwr + pwrNotation;
 
             _gunTextBuilder.Append($"\n<color=Green>Thrust<color=White>: {thrustString} N")
@@ -329,15 +329,15 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
                 .Append($"\n<color=Green>Power<color=White>: {pwr}")
                 .Append(_speedTextBuilder);
 
-            _statMessageBattleGunlist.Message.Length = 0;
-            _statMessageBattleGunlist.Message.Append(_gunTextBuilder);
+            _statMessageBattleWeaponCountsist.Message.Length = 0;
+            _statMessageBattleWeaponCountsist.Message.Append(_gunTextBuilder);
 
             _statMessageBattle.Message.Length = 0;
             _statMessageBattle.Message.Append(string.Format("<color=White>{0} ({1}%)", totalShieldString,
-                (int)tracked.CurrentShieldStrength));
+                (int)tracked.MaxShieldHealth));
 
             _statMessageBattle.Visible = true;
-            _statMessageBattleGunlist.Visible = true;
+            _statMessageBattleWeaponCountsist.Visible = true;
         }
     }
 }

@@ -45,7 +45,7 @@ namespace DefenseShields
         private Func<List<MyEntity>, RayD, bool, bool, long, float, MyTuple<bool, float>>
             _intersectEntToShieldFast; // fast check of entities for shield
 
-        private Func<IMySlimBlock, bool> _isBlockProtected;
+        private Func<IMySlimBlock, bool> _iSpecialBlockCountsockProtected;
         private Func<IMyTerminalBlock, bool> _isFortified;
 
         private bool _isRegistered;
@@ -201,7 +201,7 @@ namespace DefenseShields
                 (Func<IMyTerminalBlock, Vector3D, bool, MyTuple<bool, int, int, float, float, float>>)delegates[
                     "GetFaceInfoAndPenChance"];
             _addAtacker = (Action<long>)delegates["AddAttacker"];
-            _isBlockProtected = (Func<IMySlimBlock, bool>)delegates["IsBlockProtected"];
+            _iSpecialBlockCountsockProtected = (Func<IMySlimBlock, bool>)delegates["ISpecialBlockCountsockProtected"];
             _getFacesFast = (Func<MyEntity, MyTuple<bool, Vector3I>>)delegates["GetFacesFast"];
             _getLastAttackers =
                 (Action<MyEntity, ICollection<MyTuple<long, float, uint>>>)delegates["GetLastAttackers"];
@@ -430,9 +430,9 @@ namespace DefenseShields
             _addAtacker?.Invoke(attacker);
         }
 
-        public bool IsBlockProtected(IMySlimBlock block)
+        public bool ISpecialBlockCountsockProtected(IMySlimBlock block)
         {
-            return _isBlockProtected?.Invoke(block) ?? false;
+            return _iSpecialBlockCountsockProtected?.Invoke(block) ?? false;
         }
 
         public MyTuple<bool, Vector3I> GetFacesFast(MyEntity entity)

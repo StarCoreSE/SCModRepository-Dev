@@ -94,7 +94,7 @@ namespace klime.PointCheck
 
         public HudAPIv2 TextHudApi { get; private set; }
         public WcApi WcApi { get; private set; }
-        public ShieldApi ShApi { get; private set; }
+        public ShieldApi ShieldApi { get; private set; }
         public RtsApi RtsApi { get; private set; }
 
         private HudPointsList _hudPointsList;
@@ -125,8 +125,8 @@ namespace klime.PointCheck
             WcApi?.Load();
 
             // Initialize the SH_api and load it if it's not null
-            ShApi = new ShieldApi();
-            ShApi?.Load();
+            ShieldApi = new ShieldApi();
+            ShieldApi?.Load();
 
             // Initialize the RTS_api and load it if it's not null
             RtsApi = new RtsApi();
@@ -139,7 +139,7 @@ namespace klime.PointCheck
 
             TextHudApi?.Unload();
             WcApi?.Unload();
-            ShApi?.Unload();
+            ShieldApi?.Unload();
             if (PointValues != null)
             {
                 PointValues.Clear();
@@ -236,8 +236,8 @@ namespace klime.PointCheck
                         foreach (var entity in _managedEntities)
                         {
                             var grid = entity as MyCubeGrid;
-                            if ((grid == null || !grid.HasBlockWithSubtypeId("LargeFlightMovement")) &&
-                                !grid.HasBlockWithSubtypeId("RivalAIRemoteControlLarge"))
+                            if ((grid == null || !grid.HaSpecialBlockCountsockWithSubtypeId("LargeFlightMovement")) &&
+                                !grid.HaSpecialBlockCountsockWithSubtypeId("RivalAIRemoteControlLarge"))
                                 continue;
 
                             TrackingManager.I.TrackGrid(grid);
@@ -535,7 +535,7 @@ namespace klime.PointCheck
                 if (nd)
                 {
                     m[fn] += shipTracker.Mass;
-                    bp[fn] += shipTracker.Bpts;
+                    bp[fn] += shipTracker.BattlePoints;
                 }
                 else
                 {
@@ -547,9 +547,9 @@ namespace klime.PointCheck
                 obp[fn] += shipTracker.OffensiveBps;
                 mobp[fn] += shipTracker.MovementBps;
 
-                var g = shipTracker.GunL.Values.Sum();
-                var pwr = FormatPower(Math.Round(shipTracker.CurrentPower, 1));
-                var ts2 = FormatThrust(Math.Round(shipTracker.InstalledThrust, 2));
+                var g = shipTracker.WeaponCounts.Values.Sum();
+                var pwr = FormatPower(Math.Round(shipTracker.TotalPower, 1));
+                var ts2 = FormatThrust(Math.Round(shipTracker.TotalThrust, 2));
 
                 ts[fn].Add(CreateDisplayString(o, shipTracker, g, pwr, ts2));
             }
@@ -570,7 +570,7 @@ namespace klime.PointCheck
         {
             var ownerDisplay = ownerName != null ? ownerName.Substring(0, Math.Min(ownerName.Length, 7)) : d.GridName;
             var integrityPercent = (int)(d.CurrentIntegrity / d.OriginalIntegrity * 100);
-            var shieldPercent = (int)d.CurrentShieldStrength;
+            var shieldPercent = (int)d.MaxShieldHealth;
             var shieldColor = shieldPercent <= 0
                 ? "red"
                 : $"{255},{255 - d.ShieldHeat * 20},{255 - d.ShieldHeat * 20}";
@@ -643,7 +643,7 @@ namespace klime.PointCheck
 
     public static class GridExtensions
     {
-        public static bool HasBlockWithSubtypeId(this IMyCubeGrid grid, string subtypeId)
+        public static bool HaSpecialBlockCountsockWithSubtypeId(this IMyCubeGrid grid, string subtypeId)
         {
             List<IMySlimBlock> allBlocks = new List<IMySlimBlock>();
             grid?.GetBlocks(allBlocks, block => block.FatBlock != null);

@@ -54,8 +54,8 @@ namespace Math0424.Networking
                         if (g != null && !g.MarkedForClose && g is MyCubeGrid)
                         {
                             var grid = g as MyCubeGrid;
-                            var block = PointCheck.I.ShApi.GetShieldBlock(grid);
-                            if (block != null) PointCheck.I.ShApi.SetCharge(block, 99999999999);
+                            var block = PointCheck.I.ShieldApi.GetShieldBlock(grid);
+                            if (block != null) PointCheck.I.ShieldApi.SetCharge(block, 99999999999);
                         }
 
                     MyAPIGateway.Utilities.ShowMessage("Shields", "Charged");
