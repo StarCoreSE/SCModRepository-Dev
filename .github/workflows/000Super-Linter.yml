@@ -33,6 +33,7 @@ jobs:
         env:
           # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_CSHARP: true
           VALIDATE_ALL_CODEBASE: true
           IGNORE_GITIGNORED_FILES: true
 ...
