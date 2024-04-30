@@ -56,8 +56,7 @@ namespace klime.PointCheck
             Problemmessage;
 
         public static bool Broadcaststat;
-        public static string[] Viewmode = { "Player", "Grid", "Grid & Player", "False" };
-        public static int Viewstat;
+        public static ShipTracker.NametagSettings NametagViewState = ShipTracker.NametagSettings.PlayerName;
         public static int Decaytime = 180;
         public static int Delaytime = 60; //debug
 
@@ -454,11 +453,12 @@ namespace klime.PointCheck
             {
                 MyKeys.J, () =>
                 {
-                    Viewstat++;
-                    if (Viewstat == 4) Viewstat = 0;
-                    PointCheckHelpers.NameplateVisible = Viewstat != 3;
+                    NametagViewState++;
+                    if (NametagViewState > (ShipTracker.NametagSettings) 3)
+                        NametagViewState = 0;
+                    PointCheckHelpers.NameplateVisible = NametagViewState != 0;
                     MyAPIGateway.Utilities.ShowNotification(
-                        "ShipTracker: Nameplate visibility set to " + Viewmode[Viewstat]);
+                        "ShipTracker: Nameplate visibility set to " + NametagViewState);
                 }
             }
         };
@@ -517,8 +517,6 @@ namespace klime.PointCheck
         {
             foreach (var shipTracker in TrackingManager.I.TrackedGrids.Values)
             {
-                shipTracker.LastUpdate--;
-
                 var fn = shipTracker.FactionName;
                 var o = shipTracker.OwnerName;
                 var nd = shipTracker.IsFunctional;

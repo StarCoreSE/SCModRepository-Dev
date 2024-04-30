@@ -17,81 +17,88 @@ using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 
 namespace klime.PointCheck
 {
-    [ProtoContract]
     public class ShipTracker
     {
         private ShieldApi ShieldApi => PointCheck.I.ShApi;
 
-        [ProtoMember(10)] public int BlockCount;
-        [ProtoMember(6)] public int Bpts;
+
+        public IMyCubeGrid Grid { get; private set; }
+        public IMyPlayer Owner { get; private set; }
+        public long OwnerId { get; private set; }
+        public IMyCharacter Pilot { get; private set; }
+
+        public long GridId => Grid.EntityId;
+        public string GridName => Grid.DisplayName;
+        public float Mass => ((MyCubeGrid) Grid).GetCurrentMass();
+        public Vector3 Position => Grid.Physics.CenterOfMassWorld;
+
+        public IMyFaction OwnerFaction => MyAPIGateway.Session?.Factions?.TryGetPlayerFaction(OwnerId);
+        public Vector3 FactionColor => ColorMaskToRgb(OwnerFaction?.CustomColor ?? Vector3.Zero);
+        public string OwnerName => Pilot?.DisplayName ?? Owner?.DisplayName ?? "Unowned";
+        public string FactionName => OwnerFaction.Tag ?? "None";
+
+
+
+        public int BlockCount;
+        public int Bpts;
         private readonly List<IMyCubeGrid> _connectedGrids = new List<IMyCubeGrid>();
-        [ProtoMember(27)] public float CurrentGyro;
-        [ProtoMember(19)] public float CurrentIntegrity;
-        [ProtoMember(25)] public float CurrentPower;
-        [ProtoMember(12)] public float CurrentShieldStrength;
-        [ProtoMember(23)] public Vector3 FactionColor = Vector3.One;
-        [ProtoMember(2)] public string FactionName;
-        [ProtoMember(4)] public long GridId;
+        public float CurrentGyro;
+        public float CurrentIntegrity;
+        public float CurrentPower;
+        public float CurrentShieldStrength;
+        public Dictionary<string, int> GunL = new Dictionary<string, int>();
+        public float Heavyblocks;
+        public float InstalledThrust;
+        public bool IsFunctional;
+        public int MiscBps;
+        public int MiscPercentage;
+        public int MovementBps;
 
-
-        //passable
-        [ProtoMember(1)] public string GridName;
-
-        //[ProtoMember(14)] public float DPS;
-        [ProtoMember(16)] public Dictionary<string, int> GunL = new Dictionary<string, int>();
-        [ProtoMember(9)] public float Heavyblocks;
-        [ProtoMember(7)] public float InstalledThrust;
-        [ProtoMember(18)] public bool IsFunctional;
-        [ProtoMember(3)] public int LastUpdate;
-        [ProtoMember(8)] public float Mass;
-        [ProtoMember(37)] public int MiscBps;
-        [ProtoMember(31)] public int MiscPercentage;
-        [ProtoMember(34)] public int MovementBps;
-
-        [ProtoMember(28)] public int MovementPercentage;
+        public int MovementPercentage;
 
         private HudAPIv2.HUDMessage _nametag;
-        [ProtoMember(36)] public int OffensiveBps;
-        [ProtoMember(30)] public int OffensivePercentage;
-        [ProtoMember(38)] public Vector3 OriginalFactionColor = Vector3.One;
-        [ProtoMember(20)] public float OriginalIntegrity = -1;
-        [ProtoMember(24)] public float OriginalPower = -1;
-        [ProtoMember(41)] public float OriginalShieldStrength = -1;
-        [ProtoMember(5)] public long OwnerId;
+        public int OffensiveBps;
+        public int OffensivePercentage;
+        public float OriginalIntegrity = -1;
+        public float OriginalPower = -1;
+        public float OriginalShieldStrength = -1;
 
-        [ProtoMember(17)] public string OwnerName;
-        [ProtoMember(13)] public int Pcu;
-        [ProtoMember(33)] public int PdInvest;
-        [ProtoMember(32)] public int PdPercentage;
-        [ProtoMember(22)] public Vector3 Position;
-        [ProtoMember(35)] public int PowerBps;
-        [ProtoMember(29)] public int PowerPercentage;
-        [ProtoMember(26)] public Dictionary<string, int> Sbl = new Dictionary<string, int>();
-        [ProtoMember(21)] public int ShieldHeat;
-        [ProtoMember(11)] public float ShieldStrength;
+        public int Pcu;
+        public int PdInvest;
+        public int PdPercentage;
+        public int PowerBps;
+        public int PowerPercentage;
+        public Dictionary<string, int> Sbl = new Dictionary<string, int>();
+        public int ShieldHeat;
+        public float ShieldStrength;
 
-        [ProtoMember(40)] public Dictionary<string, int> SubgridGunL = new Dictionary<string, int>();
-        private readonly List<IMySlimBlock> _tmpBlocks = new List<IMySlimBlock>();
+        public Dictionary<string, int> SubgridGunL = new Dictionary<string, int>();
+        private readonly HashSet<IMySlimBlock> _gridBlocks = new HashSet<IMySlimBlock>();
 
-        public ShipTracker()
+        private ShipTracker()
         {
         }
 
         public ShipTracker(IMyCubeGrid grid)
         {
             Grid = grid;
-            GridId = grid.EntityId;
 
-            grid.OnClose += OnClose;
+            Grid.OnClose += OnClose;
+            Grid.OnBlockAdded += OnAddGridBlock;
+            Grid.OnBlockRemoved += OnRemoveGridBlock;
             Update();
-        }
 
-        //Instance
-        public IMyCubeGrid Grid { get; }
-        public IMyPlayer Owner { get; private set; }
+            _nametag = new HudAPIv2.HUDMessage(new StringBuilder(OwnerName), Vector2D.Zero, font: "BI_SEOutlined",
+                blend: BlendTypeEnum.PostPP, hideHud: false, shadowing: true);
+            UpdateHud();
+        }
 
         public void OnClose(IMyEntity e)
         {
+            Grid.OnClose -= OnClose;
+            Grid.OnBlockAdded -= OnAddGridBlock;
+            Grid.OnBlockRemoved -= OnRemoveGridBlock;
+
             if (MyAPIGateway.Session.IsServer)
             {
                 TrackingManager.I.TrackedGrids.Remove(Grid);
@@ -101,17 +108,25 @@ namespace klime.PointCheck
             e.OnClose -= OnClose;
         }
 
+        private void OnAddGridBlock(IMySlimBlock block)
+        {
+            if (block.FatBlock != null)
+                _gridBlocks.Add(block);
+        }
+
+
+        private void OnRemoveGridBlock(IMySlimBlock block)
+        {
+            _gridBlocks.Remove(block);
+        }
+
+        public void UpdateTick()
+        {
+            // TODO: Update pilots
+        }
+
         public void Update()
         {
-            // Why does this part exist???
-            for (var j = 0; j < _tmpBlocks.Count; j++)
-            {
-                var slim = _tmpBlocks[j];
-                if (slim?.CubeGrid == null || slim.IsDestroyed || slim.FatBlock == null)
-                    continue;
-            }
-
-            LastUpdate = 5;
             if (Grid?.Physics == null)
                 return;
 
@@ -122,7 +137,6 @@ namespace klime.PointCheck
             if (_connectedGrids.Count <= 0)
                 return;
 
-            Mass = ((MyCubeGrid) Grid).GetCurrentMass();
             bool hasPower = false, hasCockpit = false, hasThrust = false, hasGyro = false;
             float movementBpts = 0, powerBpts = 0, offensiveBpts = 0, miscBpts = 0;
             int bonusBpts = 0, pdBpts = 0; // Initial value for point defense battlepoints
@@ -154,8 +168,6 @@ namespace klime.PointCheck
             MovementBps = (int)movementBpts;
 
             var mainGrid = _connectedGrids[0];
-            FactionName = "None";
-            OwnerName = "Unowned";
 
             IsFunctional = hasPower && hasCockpit && hasGyro;
 
@@ -163,22 +175,8 @@ namespace klime.PointCheck
             {
                 OwnerId = mainGrid.BigOwners[0];
                 Owner = PointCheck.GetOwner(OwnerId);
-                OwnerName = controller ?? Owner?.DisplayName ?? GridName;
-
-                var f = MyAPIGateway.Session?.Factions?.TryGetPlayerFaction(OwnerId);
-                if (f != null)
-                {
-                    FactionName = f.Tag ?? FactionName;
-                    FactionColor = ColorMaskToRgb(f.CustomColor);
-                    OriginalFactionColor = f.CustomColor;
-                    //MyAPIGateway.Utilities.ShowNotification("RealFac " + f.CustomColor);
-                }
             }
-
-            GridName = Grid.DisplayName;
-            Position = Grid.Physics.CenterOfMassWorld;
-
-
+            
             IMyTerminalBlock shieldBlock = null;
             foreach (var g in _connectedGrids)
                 if ((shieldBlock = ShieldApi.GetShieldBlock(g)) != null)
@@ -216,10 +214,8 @@ namespace klime.PointCheck
                     var subgrid = grid as MyCubeGrid;
                     BlockCount += subgrid.BlocksCount;
                     Pcu += subgrid.BlocksPCU;
-                    _tmpBlocks.Clear();
-                    grid.GetBlocks(_tmpBlocks);
 
-                    foreach (var block in _tmpBlocks)
+                    foreach (var block in _gridBlocks)
                     {
                         var subtype = block.BlockDefinition?.Id.SubtypeName;
                         var id = "";
@@ -415,7 +411,11 @@ namespace klime.PointCheck
                     {
                         var pilot = (block as IMyCockpit).ControllerInfo?.Controller?.ControlledEntity?.Entity;
 
-                        if (pilot is IMyCockpit) controller = (pilot as IMyCockpit).Pilot.DisplayName;
+                        if (pilot is IMyCockpit)
+                        {
+                            Pilot = (pilot as IMyCockpit).Pilot;
+                            controller = Pilot.DisplayName;
+                        }
                     }
                 }
                 else if (PointCheck.PointValues.ContainsKey(id) && isTerminalBlock && !(block is IMyGyro) &&
@@ -657,81 +657,53 @@ namespace klime.PointCheck
             return MyColorPickerConstants.HSVOffsetToHSV(colorMask).HSVtoColor();
         }
 
-        public void CreateHud()
-        {
-            _nametag = new HudAPIv2.HUDMessage(new StringBuilder(OwnerName), Vector2D.Zero, font: "BI_SEOutlined",
-                blend: BlendTypeEnum.PostPP, hideHud: false, shadowing: true);
-            UpdateHud();
-        }
-
+        /// <summary>
+        /// Updates the nametag display.
+        /// </summary>
         public void UpdateHud()
         {
+            if (_nametag == null)
+                return;
+
             try
             {
-                if (_nametag == null)
-                    return;
-
-                _nametag.Message.Clear();
                 var camera = MyAPIGateway.Session.Camera;
                 const int distanceThreshold = 20000;
                 const int maxAngle = 60; // Adjust this angle as needed
 
-                if (_nametag != null)
-                {
-                    var e = MyEntities.GetEntityById(GridId);
-                    Vector3D pos;
+                Vector3D gridPosition = Position;
 
-                    if (e != null && e is IMyCubeGrid)
-                    {
-                        var g = e as IMyCubeGrid;
-                        pos = g.Physics.CenterOfMassWorld;
-                    }
-                    else
-                    {
-                        pos = Position;
-                    }
+                var targetHudPos = camera.WorldToScreen(ref gridPosition);
+                var newOrigin = new Vector2D(targetHudPos.X, targetHudPos.Y);
 
-                    var targetHudPos = camera.WorldToScreen(ref pos);
-                    var newOrigin = new Vector2D(targetHudPos.X, targetHudPos.Y);
+                _nametag.InitialColor = new Color(FactionColor);
+                var fov = camera.FieldOfViewAngle;
+                var angle = GetAngleBetweenDegree(gridPosition - camera.WorldMatrix.Translation, camera.WorldMatrix.Forward);
 
-                    _nametag.InitialColor = new Color(FactionColor);
-                    var cameraForward = camera.WorldMatrix.Forward;
-                    var toTarget = pos - camera.WorldMatrix.Translation;
-                    var fov = camera.FieldOfViewAngle;
-                    var angle = GetAngleBetweenDegree(toTarget, cameraForward);
+                var stealthed = ((uint)Grid.Flags & 0x1000000) > 0;
+                var visible = !(newOrigin.X > 1 || newOrigin.X < -1 || newOrigin.Y > 1 || newOrigin.Y < -1) &&
+                              angle <= fov && !stealthed;
 
-                    var stealthed = ((uint)e.Flags & 0x1000000) > 0;
-                    var visible = !(newOrigin.X > 1 || newOrigin.X < -1 || newOrigin.Y > 1 || newOrigin.Y < -1) &&
-                                  angle <= fov && !stealthed;
+                var distance = Vector3D.Distance(camera.WorldMatrix.Translation, gridPosition);
+                _nametag.Scale = 1 - MathHelper.Clamp(distance / distanceThreshold, 0, 1) +
+                                 30 / Math.Max(maxAngle, angle * angle * angle);
+                _nametag.Origin = new Vector2D(targetHudPos.X,
+                    targetHudPos.Y + MathHelper.Clamp(-0.000125 * distance + 0.25, 0.05, 0.25));
+                _nametag.Visible = PointCheckHelpers.NameplateVisible && visible;
 
-                    var distance = Vector3D.Distance(camera.WorldMatrix.Translation, pos);
-                    _nametag.Scale = 1 - MathHelper.Clamp(distance / distanceThreshold, 0, 1) +
-                                     30 / Math.Max(maxAngle, angle * angle * angle);
-                    _nametag.Origin = new Vector2D(targetHudPos.X,
-                        targetHudPos.Y + MathHelper.Clamp(-0.000125 * distance + 0.25, 0.05, 0.25));
-                    _nametag.Visible = PointCheckHelpers.NameplateVisible && visible;
-                    _nametag.Message.Clear();
+                _nametag.Message.Clear();
 
-                    if (IsFunctional)
-                    {
-                        var nameText = PointCheck.Viewstat == 0 || PointCheck.Viewstat == 2 ? OwnerName : GridName;
-                        _nametag.Message.Append(nameText);
+                string nameTagText = "";
 
-                        if (PointCheck.Viewstat == 2) _nametag.Message.Append("\n" + GridName);
-                    }
-                    else
-                    {
-                        var nameText = PointCheck.Viewstat == 0 || PointCheck.Viewstat == 2
-                            ? OwnerName + "<color=white>:[Dead]"
-                            : GridName + "<color=white>:[Dead]";
-                        _nametag.Message.Append(nameText);
+                if ((PointCheck.NametagViewState & NametagSettings.PlayerName) > 0)
+                    nameTagText += OwnerName;
+                if ((PointCheck.NametagViewState & NametagSettings.GridName) > 0)
+                    nameTagText += "\n" + GridName;
+                if (!IsFunctional)
+                    nameTagText += "<color=white>:[Dead]";
 
-                        if (PointCheck.Viewstat == 2)
-                            _nametag.Message.Append("\n" + GridName + "<color=white>:[Dead]");
-                    }
-
-                    _nametag.Offset = -_nametag.GetTextLength() / 2;
-                }
+                _nametag.Message.Append(nameTagText.TrimStart('\n'));
+                _nametag.Offset = -_nametag.GetTextLength() / 2;
             }
             catch (Exception)
             {
@@ -765,7 +737,6 @@ namespace klime.PointCheck
             SubgridGunL.Clear();
             Bpts = 0;
             InstalledThrust = 0;
-            Mass = 0;
             Heavyblocks = 0;
             BlockCount = 0;
             ShieldStrength = 0;
@@ -774,6 +745,14 @@ namespace klime.PointCheck
             CurrentPower = 0;
             Pcu = 0;
             //DPS = 0;
+        }
+
+        [Flags]
+        public enum NametagSettings
+        {
+            None = 0,
+            PlayerName = 1,
+            GridName = 2,
         }
     }
 }

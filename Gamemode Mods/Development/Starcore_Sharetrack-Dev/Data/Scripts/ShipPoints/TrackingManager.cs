@@ -60,7 +60,6 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             Log.Info("Send track request!");
             ShipTracker tracker = new ShipTracker(grid);
             TrackedGrids.Add(grid, tracker);
-            tracker.CreateHud();
 
             if (!share)
                 return;
@@ -150,7 +149,6 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             foreach (var tracker in _queuedTrackerUpdates)
             {
                 tracker?.Update();
-                tracker?.UpdateHud();
             }
 
             _queuedTrackerUpdates.Clear();
@@ -169,7 +167,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
 
         private void OnEntityAdd(IMyEntity entity)
         {
-            var block = entity as IMyCubeBlock;
+            var block = entity as IMyCubeBlock; // TODO move this into the assembly
             if (block != null)
                 UpdateTrackedBlock(block);
 
@@ -184,7 +182,6 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
                 _queuedGridTracks.Remove(grid.EntityId);
                 ShipTracker tracker = new ShipTracker(grid);
                 TrackedGrids.Add(grid, tracker);
-                tracker.CreateHud();
             }
         }
 

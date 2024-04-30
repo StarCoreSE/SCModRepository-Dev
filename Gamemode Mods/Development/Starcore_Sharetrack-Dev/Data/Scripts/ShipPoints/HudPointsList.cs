@@ -149,46 +149,50 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             if (MatchTimer.I.Ticks % 60 != 0)
                 return;
 
-            var trkd = new ShipTracker(focusedGrid);
+            ShipTracker shipTracker;
+            TrackingManager.I.TrackedGrids.TryGetValue(focusedGrid, out shipTracker);
+            if (shipTracker == null)
+                return;
+
             var totalShieldString = "None";
 
-            if (trkd.ShieldStrength > 100)
-                totalShieldString = $"{trkd.ShieldStrength / 100f:F2} M";
-            else if (trkd.ShieldStrength > 1 && trkd.ShieldStrength < 100)
-                totalShieldString = $"{trkd.ShieldStrength:F0}0 K";
+            if (shipTracker.ShieldStrength > 100)
+                totalShieldString = $"{shipTracker.ShieldStrength / 100f:F2} M";
+            else if (shipTracker.ShieldStrength > 1 && shipTracker.ShieldStrength < 100)
+                totalShieldString = $"{shipTracker.ShieldStrength:F0}0 K";
 
             var gunTextBuilder = new StringBuilder();
-            foreach (var x in trkd.GunL.Keys)
-                gunTextBuilder.AppendFormat("<color=Green>{0}<color=White> x {1}\n", trkd.GunL[x], x);
+            foreach (var x in shipTracker.GunL.Keys)
+                gunTextBuilder.AppendFormat("<color=Green>{0}<color=White> x {1}\n", shipTracker.GunL[x], x);
             var gunText = gunTextBuilder.ToString();
 
             var specialBlockTextBuilder = new StringBuilder();
-            foreach (var x in trkd.Sbl.Keys)
-                specialBlockTextBuilder.AppendFormat("<color=Green>{0}<color=White> x {1}\n", trkd.Sbl[x], x);
+            foreach (var x in shipTracker.Sbl.Keys)
+                specialBlockTextBuilder.AppendFormat("<color=Green>{0}<color=White> x {1}\n", shipTracker.Sbl[x], x);
             var specialBlockText = specialBlockTextBuilder.ToString();
 
-            var massString = $"{trkd.Mass}";
+            var massString = $"{shipTracker.Mass}";
 
             var thrustInKilograms = focusedGrid.GetMaxThrustInDirection(Base6Directions.Direction.Backward) / 9.81f;
             //float weight = trkd.Mass;
-            var mass = trkd.Mass;
+            var mass = shipTracker.Mass;
             var twr = (float)Math.Round(thrustInKilograms / mass, 1);
 
-            if (trkd.Mass > 1000000)
+            if (shipTracker.Mass > 1000000)
             {
-                massString = $"{Math.Round(trkd.Mass / 1000000f, 1):F2}m";
+                massString = $"{Math.Round(shipTracker.Mass / 1000000f, 1):F2}m";
             }
 
             var twRs = $"{twr:F3}";
-            var thrustString = $"{Math.Round(trkd.InstalledThrust, 1)}";
+            var thrustString = $"{Math.Round(shipTracker.InstalledThrust, 1)}";
 
-            if (trkd.InstalledThrust > 1000000)
-                thrustString = $"{Math.Round(trkd.InstalledThrust / 1000000f, 1):F2}M";
+            if (shipTracker.InstalledThrust > 1000000)
+                thrustString = $"{Math.Round(shipTracker.InstalledThrust / 1000000f, 1):F2}M";
 
-            var playerName = trkd.Owner == null ? trkd.GridName : trkd.Owner.DisplayName;
-            var factionName = trkd.Owner == null
+            var playerName = shipTracker.Owner == null ? shipTracker.GridName : shipTracker.Owner.DisplayName;
+            var factionName = shipTracker.Owner == null
                 ? ""
-                : MyAPIGateway.Session?.Factions?.TryGetPlayerFaction(trkd.OwnerId)?.Name;
+                : MyAPIGateway.Session?.Factions?.TryGetPlayerFaction(shipTracker.OwnerId)?.Name;
 
             var speed = focusedGrid.GridSizeEnum == MyCubeSize.Large
                 ? MyDefinitionManager.Static.EnvironmentDefinition.LargeShipMaxSpeed
@@ -202,17 +206,17 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             }
 
 
-            var pwrNotation = trkd.CurrentPower > 1000 ? "GW" : "MW";
-            var tempPwr = trkd.CurrentPower > 1000
-                ? $"{Math.Round(trkd.CurrentPower / 1000, 1):F1}"
-                : Math.Round(trkd.CurrentPower, 1).ToString();
+            var pwrNotation = shipTracker.CurrentPower > 1000 ? "GW" : "MW";
+            var tempPwr = shipTracker.CurrentPower > 1000
+                ? $"{Math.Round(shipTracker.CurrentPower / 1000, 1):F1}"
+                : Math.Round(shipTracker.CurrentPower, 1).ToString();
             var pwr = tempPwr + pwrNotation;
 
-            var gyroString = $"{Math.Round(trkd.CurrentGyro, 1)}";
+            var gyroString = $"{Math.Round(shipTracker.CurrentGyro, 1)}";
 
-            if (trkd.CurrentGyro >= 1000000)
+            if (shipTracker.CurrentGyro >= 1000000)
             {
-                double tempGyro2 = Math.Round(trkd.CurrentGyro / 1000000f, 1);
+                double tempGyro2 = Math.Round(shipTracker.CurrentGyro / 1000000f, 1);
                 gyroString = tempGyro2 > 1000 ? $"{Math.Round(tempGyro2 / 1000, 1):F1}G" : $"{Math.Round(tempGyro2, 1):F1}M";
             }
 
@@ -225,9 +229,9 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             sb.AppendFormat("<color=Green>Owner<color=White>: {0} ", playerName);
             sb.AppendFormat("<color=Green>Faction<color=White>: {0}\n", factionName);
             sb.AppendFormat("<color=Green>Mass<color=White>: {0} kg\n", massString);
-            sb.AppendFormat("<color=Green>Heavy blocks<color=White>: {0}\n", trkd.Heavyblocks);
-            sb.AppendFormat("<color=Green>Total blocks<color=White>: {0}\n", trkd.BlockCount);
-            sb.AppendFormat("<color=Green>PCU<color=White>: {0}\n", trkd.Pcu);
+            sb.AppendFormat("<color=Green>Heavy blocks<color=White>: {0}\n", shipTracker.Heavyblocks);
+            sb.AppendFormat("<color=Green>Total blocks<color=White>: {0}\n", shipTracker.BlockCount);
+            sb.AppendFormat("<color=Green>PCU<color=White>: {0}\n", shipTracker.Pcu);
             sb.AppendFormat("<color=Green>Size<color=White>: {0}\n",
                 (focusedGrid.Max + Vector3.Abs(focusedGrid.Min)).ToString());
             // sb.AppendFormat("<color=Green>Max Speed<color=White>: {0} | <color=Green>TWR<color=White>: {1}\n", speed, TWRs);
@@ -238,15 +242,15 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
 
             // Battle Stats
             sb.AppendLine("<color=Orange>----Battle Stats----");
-            sb.AppendFormat("<color=Green>Battle Points<color=White>: {0}\n", trkd.Bpts);
+            sb.AppendFormat("<color=Green>Battle Points<color=White>: {0}\n", shipTracker.Bpts);
             sb.AppendFormat(
                 "<color=Orange>[<color=Red> {0}% <color=Orange>| <color=Green>{1}% <color=Orange>| <color=DeepSkyBlue>{2}% <color=Orange>| <color=LightGray>{3}% <color=Orange>]\n",
-                trkd.OffensivePercentage, trkd.PowerPercentage, trkd.MovementPercentage, trkd.MiscPercentage);
+                shipTracker.OffensivePercentage, shipTracker.PowerPercentage, shipTracker.MovementPercentage, shipTracker.MiscPercentage);
             sb.Append(
-                $"<color=Green>PD Investment<color=White>: <color=Orange>( <color=white>{trkd.PdInvest}% <color=Orange>|<color=Crimson> {trkd.PdPercentage}%<color=Orange> )\n");
+                $"<color=Green>PD Investment<color=White>: <color=Orange>( <color=white>{shipTracker.PdInvest}% <color=Orange>|<color=Crimson> {shipTracker.PdPercentage}%<color=Orange> )\n");
             sb.AppendFormat(
                 "<color=Green>Shield Max HP<color=White>: {0} <color=Orange>(<color=White>{1}%<color=Orange>)\n",
-                totalShieldString, (int)trkd.CurrentShieldStrength);
+                totalShieldString, (int)shipTracker.CurrentShieldStrength);
             sb.AppendFormat("<color=Green>Thrust<color=White>: {0}N\n", thrustString);
             sb.AppendFormat("<color=Green>Gyro<color=White>: {0}N\n", gyroString);
             sb.AppendFormat("<color=Green>Power<color=White>: {0}\n", pwr);
