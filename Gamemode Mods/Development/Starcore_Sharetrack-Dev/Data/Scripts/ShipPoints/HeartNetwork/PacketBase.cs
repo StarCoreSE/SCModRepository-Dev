@@ -19,8 +19,7 @@ namespace Scripts.ShipPoints.HeartNetwork
         /// <param name="SenderSteamId"></param>
         public abstract void Received(ulong SenderSteamId);
 
-        public static Type[] Types = new Type[]
-        {
+        public static Type[] Types = {
             typeof(PacketBase),
             typeof(TrackingSyncPacket),
         };

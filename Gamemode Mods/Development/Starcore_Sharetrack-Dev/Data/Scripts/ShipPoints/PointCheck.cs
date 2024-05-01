@@ -9,6 +9,7 @@ using Math0424.Networking;
 using Math0424.ShipPoints;
 using RelativeTopSpeed;
 using Sandbox.Definitions;
+using Sandbox.Engine.Physics;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.ShipPoints.MatchTimer;
@@ -45,8 +46,6 @@ namespace klime.PointCheck
         public static int LocalProblemSwitch;
         public static Dictionary<string, int> PointValues = new Dictionary<string, int>();
 
-        public static Dictionary<long, List<ulong>> Sending = new Dictionary<long, List<ulong>>();
-        public static HashSet<long> Tracking = new HashSet<long>();
         private static readonly Dictionary<long, IMyPlayer> AllPlayers = new Dictionary<long, IMyPlayer>();
         private static readonly List<IMyPlayer> ListPlayers = new List<IMyPlayer>();
 
@@ -57,8 +56,7 @@ namespace klime.PointCheck
             Problemmessage;
 
         public static bool Broadcaststat;
-        public static string[] Viewmode = { "Player", "Grid", "Grid & Player", "False" };
-        public static int Viewstat;
+        public static ShipTracker.NametagSettings NametagViewState = ShipTracker.NametagSettings.PlayerName;
         public static int Decaytime = 180;
         public static int Delaytime = 60; //debug
 
@@ -96,7 +94,7 @@ namespace klime.PointCheck
 
         public HudAPIv2 TextHudApi { get; private set; }
         public WcApi WcApi { get; private set; }
-        public ShieldApi ShApi { get; private set; }
+        public ShieldApi ShieldApi { get; private set; }
         public RtsApi RtsApi { get; private set; }
 
         private HudPointsList _hudPointsList;
@@ -127,8 +125,8 @@ namespace klime.PointCheck
             WcApi?.Load();
 
             // Initialize the SH_api and load it if it's not null
-            ShApi = new ShieldApi();
-            ShApi?.Load();
+            ShieldApi = new ShieldApi();
+            ShieldApi?.Load();
 
             // Initialize the RTS_api and load it if it's not null
             RtsApi = new RtsApi();
@@ -141,11 +139,10 @@ namespace klime.PointCheck
 
             TextHudApi?.Unload();
             WcApi?.Unload();
-            ShApi?.Unload();
+            ShieldApi?.Unload();
             if (PointValues != null)
             {
                 PointValues.Clear();
-                Sending.Clear();
                 AllPlayers.Clear();
                 ListPlayers.Clear();
             }
@@ -239,32 +236,11 @@ namespace klime.PointCheck
                         foreach (var entity in _managedEntities)
                         {
                             var grid = entity as MyCubeGrid;
-                            if ((grid == null || !grid.HasBlockWithSubtypeId("LargeFlightMovement")) &&
-                                !grid.HasBlockWithSubtypeId("RivalAIRemoteControlLarge"))
+                            if ((grid == null || !grid.HaSpecialBlockCountsockWithSubtypeId("LargeFlightMovement")) &&
+                                !grid.HaSpecialBlockCountsockWithSubtypeId("RivalAIRemoteControlLarge"))
                                 continue;
 
-                            var entityId = grid.EntityId;
-                            if (!Tracking.Contains(entityId))
-                            {
-                                var packet = new PacketGridData
-                                { Id = entityId, Value = (byte)(Tracking.Contains(entityId) ? 2 : 1) }
-                                    ;
-                                Static.MyNetwork.TransmitToServer(packet);
-                                if (packet.Value == 1)
-                                {
-                                    MyAPIGateway.Utilities.ShowNotification("ShipTracker: Added grid to tracker");
-                                    Tracking.Add(entityId);
-                                    if (!IntegretyMessage.Visible) IntegretyMessage.Visible = true;
-                                }
-                                else
-                                {
-                                    MyAPIGateway.Utilities.ShowNotification(
-                                        "ShipTracker: Removed grid from tracker");
-                                    Tracking.Remove(entityId);
-                                }
-                            }
-
-                            _fastStart = _count;
+                            TrackingManager.I.TrackGrid(grid);
                         }
                     }
                 }
@@ -296,7 +272,7 @@ namespace klime.PointCheck
                 {
                     case ProblemReportState.ItsOver:
                         const string tempText = "<color=Red>" + "A PROBLEM HAS BEEN REPORTED," + "\n" +
-                                                "CHECK WITH BOTH TEAMS AND THEN TYPE '/fixed' TO CLEAR THIS MESSAGE";
+                                                "CHECK WITH BOTH TEAMS AND THEN TYPE '/st fixed' TO CLEAR THIS MESSAGE";
                         Problemmessage.Message.Append(tempText);
                         Problemmessage.Visible = true;
                         break;
@@ -370,44 +346,44 @@ namespace klime.PointCheck
             var var = MyAPIGateway.Utilities.SerializeFromBinary<string>((byte[])obj);
 
             // Check if the deserialization was successful
-            if (var != null)
+            if (var == null)
+                return;
+
+            // Split the string into an array of substrings using the ';' delimiter
+            var split = var.Split(';');
+
+            // Iterate through each substring (s) in the split array
+            foreach (var s in split)
             {
-                // Split the string into an array of substrings using the ';' delimiter
-                var split = var.Split(';');
+                // Split the substring (s) into an array of parts using the '@' delimiter
+                var parts = s.Split('@');
+                int value;
 
-                // Iterate through each substring (s) in the split array
-                foreach (var s in split)
+                // Check if there are exactly 2 parts and if the second part is a valid integer (value)
+                if (parts.Length != 2 || !int.TryParse(parts[1], out value))
+                    continue;
+
+                // Trim the first part (name) and remove any extra whitespaces
+                var name = parts[0].Trim();
+                var lsIndex = name.IndexOf("{LS}");
+
+                // Check if the name contains "{LS}"
+                if (lsIndex != -1)
                 {
-                    // Split the substring (s) into an array of parts using the '@' delimiter
-                    var parts = s.Split('@');
-                    int value;
+                    // Replace "{LS}" with "Large" and update the PointValues SendingDictionary
+                    var largeName = name.Substring(0, lsIndex) + "Large" +
+                                    name.Substring(lsIndex + "{LS}".Length);
+                    PointValues[largeName] = value;
 
-                    // Check if there are exactly 2 parts and if the second part is a valid integer (value)
-                    if (parts.Length == 2 && int.TryParse(parts[1], out value))
-                    {
-                        // Trim the first part (name) and remove any extra whitespaces
-                        var name = parts[0].Trim();
-                        var lsIndex = name.IndexOf("{LS}");
-
-                        // Check if the name contains "{LS}"
-                        if (lsIndex != -1)
-                        {
-                            // Replace "{LS}" with "Large" and update the PointValues SendingDictionary
-                            var largeName = name.Substring(0, lsIndex) + "Large" +
-                                            name.Substring(lsIndex + "{LS}".Length);
-                            PointValues[largeName] = value;
-
-                            // Replace "{LS}" with "Small" and update the PointValues SendingDictionary
-                            var smallName = name.Substring(0, lsIndex) + "Small" +
-                                            name.Substring(lsIndex + "{LS}".Length);
-                            PointValues[smallName] = value;
-                        }
-                        else
-                        {
-                            // Update the PointValues SendingDictionary directly
-                            PointValues[name] = value;
-                        }
-                    }
+                    // Replace "{LS}" with "Small" and update the PointValues SendingDictionary
+                    var smallName = name.Substring(0, lsIndex) + "Small" +
+                                    name.Substring(lsIndex + "{LS}".Length);
+                    PointValues[smallName] = value;
+                }
+                else
+                {
+                    // Update the PointValues SendingDictionary directly
+                    PointValues[name] = value;
                 }
             }
         }
@@ -450,6 +426,8 @@ namespace klime.PointCheck
                 MyKeys.M, () =>
                 {
                     IMyCubeGrid castGrid = RaycastGridFromCamera();
+                    if (castGrid == null)
+                        return;
 
                     if (!TrackingManager.I.IsGridTracked(castGrid))
                         TrackingManager.I.TrackGrid(castGrid);
@@ -477,11 +455,12 @@ namespace klime.PointCheck
             {
                 MyKeys.J, () =>
                 {
-                    Viewstat++;
-                    if (Viewstat == 4) Viewstat = 0;
-                    PointCheckHelpers.NameplateVisible = Viewstat != 3;
+                    NametagViewState++;
+                    if (NametagViewState > (ShipTracker.NametagSettings) 3)
+                        NametagViewState = 0;
+                    PointCheckHelpers.NameplateVisible = NametagViewState != 0;
                     MyAPIGateway.Utilities.ShowNotification(
-                        "ShipTracker: Nameplate visibility set to " + Viewmode[Viewstat]);
+                        "ShipTracker: Nameplate visibility set to " + NametagViewState);
                 }
             }
         };
@@ -527,16 +506,7 @@ namespace klime.PointCheck
 
             TeamBpCalc(tt, _ts, _m, _bp, _mbp, _pbp, _obp, _mobp);
 
-            var autotrackenabled = false;
-            // Autotrack players when match is running, set above bool to true to enable
-            if (MatchTimer.I.Ticks % 240 == 0 && autotrackenabled)
-            {
-                var ce = MyAPIGateway.Session.Player?.Controller?.ControlledEntity?.Entity;
-                var ck = ce as IMyCockpit;
-                var eid = ck.CubeGrid.EntityId;
-
-                AutoTrackPilotedShip(ck, eid);
-            }
+            // TODO re-introduce autotrack.
 
             IntegretyMessage.Message.Clear();
             IntegretyMessage.Message.Append(tt);
@@ -549,8 +519,6 @@ namespace klime.PointCheck
         {
             foreach (var shipTracker in TrackingManager.I.TrackedGrids.Values)
             {
-                shipTracker.LastUpdate--;
-
                 var fn = shipTracker.FactionName;
                 var o = shipTracker.OwnerName;
                 var nd = shipTracker.IsFunctional;
@@ -569,21 +537,21 @@ namespace klime.PointCheck
                 if (nd)
                 {
                     m[fn] += shipTracker.Mass;
-                    bp[fn] += shipTracker.Bpts;
+                    bp[fn] += shipTracker.BattlePoints;
                 }
                 else
                 {
                     continue;
                 }
 
-                mbp[fn] += shipTracker.MiscBps;
-                pbp[fn] += shipTracker.PowerBps;
-                obp[fn] += shipTracker.OffensiveBps;
-                mobp[fn] += shipTracker.MovementBps;
+                mbp[fn] += shipTracker.RemainingPoints;
+                pbp[fn] += shipTracker.PowerPoints;
+                obp[fn] += shipTracker.OffensivePoints;
+                mobp[fn] += shipTracker.MovementPoints;
 
-                var g = shipTracker.GunL.Values.Sum();
-                var pwr = FormatPower(Math.Round(shipTracker.CurrentPower, 1));
-                var ts2 = FormatThrust(Math.Round(shipTracker.InstalledThrust, 2));
+                var g = shipTracker.WeaponCounts.Values.Sum();
+                var pwr = FormatPower(Math.Round(shipTracker.TotalPower, 1));
+                var ts2 = FormatThrust(Math.Round(shipTracker.TotalThrust, 2));
 
                 ts[fn].Add(CreateDisplayString(o, shipTracker, g, pwr, ts2));
             }
@@ -603,17 +571,15 @@ namespace klime.PointCheck
         private string CreateDisplayString(string ownerName, ShipTracker d, int g, string power, string thrust)
         {
             var ownerDisplay = ownerName != null ? ownerName.Substring(0, Math.Min(ownerName.Length, 7)) : d.GridName;
-            var integrityPercent = (int)(d.CurrentIntegrity / d.OriginalIntegrity * 100);
-            var shieldPercent = (int)d.CurrentShieldStrength;
+            var integrityPercent = (int)(d.MaxShieldHealth / d.OriginalMaxShieldHealth * 100);
+            var shieldPercent = (int)d.CurrentShieldPercent;
             var shieldColor = shieldPercent <= 0
                 ? "red"
-                : $"{255},{255 - d.ShieldHeat * 20},{255 - d.ShieldHeat * 20}";
+                : $"{255},{255 - d.CurrentShieldHeat * 20},{255 - d.CurrentShieldHeat * 20}";
             var weaponColor = g == 0 ? "red" : "orange";
             var functionalColor = d.IsFunctional ? "white" : "red";
-            return string.Format(
-                "<color={0}>{1,-8}{2,3}%<color={3}> P:<color=orange>{4,3}<color={5}> T:<color=orange>{6,3}<color={7}> W:<color={8}>{9,3}<color={10}> S:<color={11}>{12,3}%<color=white>",
-                functionalColor, ownerDisplay, integrityPercent, functionalColor, power, functionalColor, thrust,
-                functionalColor, weaponColor, g, functionalColor, shieldColor, shieldPercent);
+            return
+                $"<color={functionalColor}>{ownerDisplay,-8}{integrityPercent,3}%<color={functionalColor}> P:<color=orange>{power,3}<color={functionalColor}> T:<color=orange>{thrust,3}<color={functionalColor}> W:<color={weaponColor}>{g,3}<color={functionalColor}> S:<color={shieldColor}>{shieldPercent,3}%<color=white>";
         }
 
 
@@ -641,36 +607,6 @@ namespace klime.PointCheck
             }
         }
 
-
-        private static void AutoTrackPilotedShip(IMyCockpit cockpit, long entityId)
-        {
-            if (cockpit == null || Tracking.Contains(entityId)) return;
-
-            var hasGyro = false;
-            var hasBatteryOrReactor = false;
-            var gridBlocks = new List<IMySlimBlock>();
-            cockpit.CubeGrid.GetBlocks(gridBlocks);
-
-            foreach (var block in gridBlocks)
-            {
-                if (block.FatBlock is IMyGyro)
-                    hasGyro = true;
-                else if (block.FatBlock is IMyBatteryBlock || block.FatBlock is IMyReactor) hasBatteryOrReactor = true;
-
-                if (hasGyro && hasBatteryOrReactor) break;
-            }
-
-            if (hasGyro && hasBatteryOrReactor)
-            {
-                var packetData = new PacketGridData { Id = entityId, Value = 1 };
-                Static.MyNetwork.TransmitToServer(packetData);
-                MyAPIGateway.Utilities.ShowNotification("ShipTracker: Added grid to tracker");
-                Tracking.Add(entityId);
-                if (!IntegretyMessage.Visible) IntegretyMessage.Visible = true;
-            }
-        }
-
-
         public static void There_Is_A_Problem()
         {
             LocalProblemSwitch = 1;
@@ -690,12 +626,11 @@ namespace klime.PointCheck
         public static IMyCubeGrid RaycastGridFromCamera()
         {
             var camMat = MyAPIGateway.Session.Camera.WorldMatrix;
-            var hits = new List<MyLineSegmentOverlapResult<MyEntity>>();
-            var ray = new LineD(camMat.Translation, camMat.Translation + camMat.Forward * 500);
-            MyGamePruningStructure.GetTopmostEntitiesOverlappingRay(ref ray, hits);
+            var hits = new List<IHitInfo>();
+            MyAPIGateway.Physics.CastRay(camMat.Translation, camMat.Translation + camMat.Forward * 500, hits);
             foreach (var hit in hits)
             {
-                var grid = hit.Element as IMyCubeGrid;
+                var grid = hit.HitEntity as IMyCubeGrid;
 
                 if (grid?.Physics != null)
                     return grid;
@@ -708,7 +643,7 @@ namespace klime.PointCheck
 
     public static class GridExtensions
     {
-        public static bool HasBlockWithSubtypeId(this IMyCubeGrid grid, string subtypeId)
+        public static bool HaSpecialBlockCountsockWithSubtypeId(this IMyCubeGrid grid, string subtypeId)
         {
             List<IMySlimBlock> allBlocks = new List<IMySlimBlock>();
             grid?.GetBlocks(allBlocks, block => block.FatBlock != null);
