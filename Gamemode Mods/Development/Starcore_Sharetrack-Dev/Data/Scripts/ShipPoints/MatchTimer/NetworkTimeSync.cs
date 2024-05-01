@@ -20,22 +20,45 @@ namespace ShipPoints.MatchTiming
 
         public override void LoadData()
         {
-            MyAPIGateway.Multiplayer.RegisterSecureMessageHandler(NetworkId, ReceiveMessage);
-            MyLog.Default.WriteLineAndConsole("[NetworkTimeSync] Registered network message handler.");
-            UpdateTimeOffset();
+            try
+            {
+                MyAPIGateway.Multiplayer.RegisterSecureMessageHandler(NetworkId, ReceiveMessage);
+                MyLog.Default.WriteLineAndConsole("[NetworkTimeSync] Registered network message handler.");
+                UpdateTimeOffset();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+                throw ex;
+            }
         }
 
         protected override void UnloadData()
         {
-            MyAPIGateway.Multiplayer.UnregisterSecureMessageHandler(NetworkId, ReceiveMessage);
-            MyLog.Default.WriteLineAndConsole("[NetworkTimeSync] De-registered network message handler.");
+            try
+            {
+                MyAPIGateway.Multiplayer.UnregisterSecureMessageHandler(NetworkId, ReceiveMessage);
+                MyLog.Default.WriteLineAndConsole("[NetworkTimeSync] De-registered network message handler.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+                throw ex;
+            }
         }
 
         public override void UpdateAfterSimulation()
         {
-            if (_tickCounter % 307 == 0)
-                UpdateTimeOffset();
-            _tickCounter++;
+            try
+            {
+                if (_tickCounter % 307 == 0)
+                    UpdateTimeOffset();
+                _tickCounter++;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+            }
         }
 
         private void UpdateTimeOffset()

@@ -84,20 +84,27 @@ namespace ShipPoints.MatchTiming
 
         public override void UpdateAfterSimulation()
         {
-            Ticks++;
-            //MyAPIGateway.Utilities.SendModMessage(ModMessageId, CurrentMatchTime);
-
-            if (DateTime.UtcNow > EndTime && !IsMatchEnded && MyAPIGateway.Session.IsServer)
+            try
             {
-                PointCheck.EndMatch();
-                MyLog.Default.WriteLineAndConsole("[MatchTimer] Auto-Stopped Match. " + CurrentMatchTime);
+                Ticks++;
+                //MyAPIGateway.Utilities.SendModMessage(ModMessageId, CurrentMatchTime);
+
+                if (DateTime.UtcNow > EndTime && !IsMatchEnded && MyAPIGateway.Session.IsServer)
+                {
+                    PointCheck.EndMatch();
+                    MyLog.Default.WriteLineAndConsole("[MatchTimer] Auto-Stopped Match. " + CurrentMatchTime);
+                }
+
+                // Update every 10 seconds if is server
+                if (!MyAPIGateway.Session.IsServer || Ticks % TimerUpdateInterval != 0)
+                    return;
+
+                MatchTimerPacket.SendMatchUpdate(this);
             }
-
-            // Update every 10 seconds if is server
-            if (!MyAPIGateway.Session.IsServer || Ticks % TimerUpdateInterval != 0)
-                return;
-
-            MatchTimerPacket.SendMatchUpdate(this);
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+            }
         }
 
         #endregion
