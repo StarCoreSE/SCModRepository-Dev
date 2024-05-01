@@ -297,17 +297,20 @@ namespace klime.PointCheck
 
         public void OnClose(IMyEntity e)
         {
-            Grid.OnClose -= OnClose;
-            Grid.GetGridGroup(GridLinkTypeEnum.Physical).OnGridAdded -= OnGridAdd;
-            Grid.GetGridGroup(GridLinkTypeEnum.Physical).OnGridRemoved -= OnGridRemove;
-
-            if (MyAPIGateway.Session.IsServer)
+            if (Grid != null)
             {
-                TrackingManager.I.TrackedGrids.Remove(Grid);
-                DisposeHud();
+                Grid.OnClose -= OnClose;
+                var gridGroup = Grid.GetGridGroup(GridLinkTypeEnum.Physical);
+                if (gridGroup != null)
+                {
+                    gridGroup.OnGridAdded -= OnGridAdd;
+                    gridGroup.OnGridRemoved -= OnGridRemove;
+                }
             }
 
-            e.OnClose -= OnClose;
+            TrackingManager.I.TrackedGrids.Remove(Grid);
+
+            DisposeHud();
         }
 
         public void Update()
@@ -315,8 +318,8 @@ namespace klime.PointCheck
             if (Grid?.Physics == null) // TODO transfer to a different grid
                 return;
 
-            MyAPIGateway.Utilities.ShowNotification("F: " + IsFunctional, 5000);
             // TODO: Update pilots
+            // TODO: Update shield block
         }
 
         private void OnGridAdd(IMyGridGroupData groupData, IMyCubeGrid grid, IMyGridGroupData previousGroupData)

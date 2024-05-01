@@ -59,6 +59,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             PowerPoints = 0;
             MovementPoints = 0;
             PointDefensePoints = 0;
+            CockpitCount = 0;
 
             // Setting battlepoints first so that calcs can do calc stuff
             foreach (var block in _fatBlocks) // If slimblock points become necessary in the future, change this to _slimBlock
@@ -151,6 +152,9 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
 
             foreach (var block in _fatBlocks)
             {
+                if (block is IMyCockpit)
+                    CockpitCount++;
+
                 if (block is IMyThrust)
                     TotalThrust += ((IMyThrust)block).MaxEffectiveThrust;
 
@@ -172,7 +176,6 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
                     
             }
 
-            CockpitCount = 0;
             BlockCount = ((MyCubeGrid)Grid).BlocksCount;
             PCU = ((MyCubeGrid)Grid).BlocksPCU;
             HeavyArmorCount = 0;
@@ -247,22 +250,18 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             if (thisClimbingCostMult > 0 && thiSpecialBlockCountsockCount > 1)
                 blockPoints += (int)(blockPoints * thiSpecialBlockCountsockCount * thisClimbingCostMult);
 
+            if (block is IMyThrust || block is IMyGyro)
+                MovementPoints += blockPoints;
+            if (block is IMyPowerProducer)
+                PowerPoints += blockPoints;
+            if (WcApi.HasCoreWeapon((MyEntity)block))
             {
-                if (block is IMyShipController)
-                    CockpitCount++;
-                if (block is IMyThrust || block is IMyGyro)
-                    MovementPoints += blockPoints;
-                if (block is IMyPowerProducer)
-                    PowerPoints += blockPoints;
-                if (WcApi.HasCoreWeapon((MyEntity)block))
-                {
-                    var validTargetTypes = new List<string>();
-                    WcApi.GetTurretTargetTypes((MyEntity)block, validTargetTypes);
-                    if (validTargetTypes.Contains("Projectiles"))
-                        PointDefensePoints += blockPoints;
-                    else
-                        OffensivePoints += blockPoints;
-                }
+                var validTargetTypes = new List<string>();
+                WcApi.GetTurretTargetTypes((MyEntity)block, validTargetTypes);
+                if (validTargetTypes.Contains("Projectiles"))
+                    PointDefensePoints += blockPoints;
+                else
+                    OffensivePoints += blockPoints;
             }
 
             BattlePoints += blockPoints;
