@@ -1,0 +1,27 @@
+name: Validate SBC Files
+
+on:
+  push:
+    branches: [ main, feature/* ]
+    paths:
+      - '**/*.sbc'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**/*.sbc'
+
+jobs:
+  xml-validation:
+    name: XML Validation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install xmllint
+      run: sudo apt-get install -y libxml2-utils
+
+    - name: Validate XML files
+      run: |
+        find . -name '*.sbc' -exec xmllint --noout {} +
