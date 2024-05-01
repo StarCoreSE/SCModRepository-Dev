@@ -1,10 +1,9 @@
 ﻿using System;
-using klime.PointCheck;
 using Sandbox.ModAPI;
 using VRage.Game.Components;
 using VRage.Utils;
 
-namespace SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.ShipPoints.MatchTimer
+namespace ShipPoints.MatchTiming
 {
     /// <summary>
     ///     Keeps track of the match timer for networking and other mods.
@@ -85,20 +84,27 @@ namespace SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.
 
         public override void UpdateAfterSimulation()
         {
-            Ticks++;
-            //MyAPIGateway.Utilities.SendModMessage(ModMessageId, CurrentMatchTime);
-
-            if (DateTime.UtcNow > EndTime && !IsMatchEnded && MyAPIGateway.Session.IsServer)
+            try
             {
-                PointCheck.EndMatch();
-                MyLog.Default.WriteLineAndConsole("[MatchTimer] Auto-Stopped Match. " + CurrentMatchTime);
+                Ticks++;
+                //MyAPIGateway.Utilities.SendModMessage(ModMessageId, CurrentMatchTime);
+
+                if (DateTime.UtcNow > EndTime && !IsMatchEnded && MyAPIGateway.Session.IsServer)
+                {
+                    PointCheck.EndMatch();
+                    MyLog.Default.WriteLineAndConsole("[MatchTimer] Auto-Stopped Match. " + CurrentMatchTime);
+                }
+
+                // Update every 10 seconds if is server
+                if (!MyAPIGateway.Session.IsServer || Ticks % TimerUpdateInterval != 0)
+                    return;
+
+                MatchTimerPacket.SendMatchUpdate(this);
             }
-
-            // Update every 10 seconds if is server
-            if (!MyAPIGateway.Session.IsServer || Ticks % TimerUpdateInterval != 0)
-                return;
-
-            MatchTimerPacket.SendMatchUpdate(this);
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+            }
         }
 
         #endregion

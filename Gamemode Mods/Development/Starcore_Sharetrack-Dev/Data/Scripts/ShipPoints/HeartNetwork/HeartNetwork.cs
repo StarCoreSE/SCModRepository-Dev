@@ -1,16 +1,10 @@
 ﻿using Sandbox.ModAPI;
-using SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.ShipPoints.MatchTimer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using klime.PointCheck;
 using VRage.Game.ModAPI;
-using VRageMath;
 
-namespace Scripts.ShipPoints.HeartNetwork
+namespace ShipPoints.HeartNetworking
 {
     public class HeartNetwork
     {

@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ProtoBuf;
-using Scripts.ShipPoints.HeartNetwork.Custom;
+using ShipPoints.HeartNetworking.Custom;
 
-namespace Scripts.ShipPoints.HeartNetwork
+namespace ShipPoints.HeartNetworking
 {
     [ProtoInclude(1, typeof(TrackingSyncPacket))]
 

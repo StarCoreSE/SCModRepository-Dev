@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net;
-using klime.PointCheck;
-using Sandbox.Game.Gui;
 using Sandbox.ModAPI;
-using Scripts.ShipPoints.HeartNetwork;
-using Scripts.ShipPoints.HeartNetwork.Custom;
+using ShipPoints.HeartNetworking;
+using ShipPoints.HeartNetworking.Custom;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
 
-namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.Data.Scripts.ShipPoints
+namespace ShipPoints.ShipTracking
 {
     internal class TrackingManager
     {
@@ -132,7 +129,6 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
         public HashSet<IMyCubeGrid> AllGrids = new HashSet<IMyCubeGrid>();
         public Dictionary<IMyCubeGrid, ShipTracker> TrackedGrids = new Dictionary<IMyCubeGrid, ShipTracker>();
         private readonly HashSet<long> _queuedGridTracks = new HashSet<long>();
-        private readonly HashSet<ShipTracker> _queuedTrackerUpdates = new HashSet<ShipTracker>();
 
         private TrackingManager()
         {
@@ -146,12 +142,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
 
         private void Update()
         {
-            foreach (var tracker in _queuedTrackerUpdates)
-            {
-                tracker?.Update();
-            }
-
-            _queuedTrackerUpdates.Clear();
+            
         }
 
         private void Unload()
@@ -167,10 +158,6 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
 
         private void OnEntityAdd(IMyEntity entity)
         {
-            var block = entity as IMyCubeBlock; // TODO move this into the assembly
-            if (block != null)
-                UpdateTrackedBlock(block);
-
             var grid = entity as IMyCubeGrid;
             if (grid?.Physics == null)
                 return;
@@ -187,9 +174,6 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
 
         private void OnEntityRemove(IMyEntity entity)
         {
-            var block = entity as IMyCubeBlock;
-            if (block != null)
-                UpdateTrackedBlock(block);
 
             if (!(entity is IMyCubeGrid) || entity.Physics == null)
                 return;
@@ -204,14 +188,6 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             }
             
             _queuedGridTracks.Remove(grid.EntityId);
-        }
-
-        private void UpdateTrackedBlock(IMyCubeBlock block)
-        {
-            ShipTracker tracker;
-            TrackedGrids.TryGetValue(block.CubeGrid, out tracker);
-            if (tracker != null)
-                _queuedTrackerUpdates.Add(tracker);
         }
 
         private long[] GetGridIds()

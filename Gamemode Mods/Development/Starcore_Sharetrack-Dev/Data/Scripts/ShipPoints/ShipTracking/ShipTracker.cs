@@ -1,22 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using DefenseShields;
 using Draygo.API;
-using ProtoBuf;
-using Sandbox.Definitions;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
-using SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.Data.Scripts.ShipPoints;
-using SpaceEngineers.Game.ModAPI;
 using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRageMath;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 
-namespace klime.PointCheck
+namespace ShipPoints.ShipTracking
 {
     public class ShipTracker
     {
@@ -290,7 +284,7 @@ namespace klime.PointCheck
             Grid.GetGridGroup(GridLinkTypeEnum.Physical).OnGridAdded += OnGridAdd;
             Grid.GetGridGroup(GridLinkTypeEnum.Physical).OnGridRemoved += OnGridRemove;
 
-            _nametag = new HudAPIv2.HUDMessage(new StringBuilder(OwnerName), Vector2D.Zero, font: "BI_SEOutlined",
+            _nametag = new HudAPIv2.HUDMessage(new StringBuilder("Initializing..."), Vector2D.Zero, font: "BI_SEOutlined",
                 blend: BlendTypeEnum.PostPP, hideHud: false, shadowing: true);
             UpdateHud();
         }
@@ -320,6 +314,8 @@ namespace klime.PointCheck
 
             // TODO: Update pilots
             // TODO: Update shield block
+            foreach (var gridStat in _gridStats.Values)
+                gridStat.Update();
         }
 
         private void OnGridAdd(IMyGridGroupData groupData, IMyCubeGrid grid, IMyGridGroupData previousGroupData)
