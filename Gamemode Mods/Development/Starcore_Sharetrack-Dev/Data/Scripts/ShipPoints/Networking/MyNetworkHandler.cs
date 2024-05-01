@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using klime.PointCheck;
-using Math0424.ShipPoints;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
-using SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.Data.Scripts.ShipPoints;
+using ShipPoints;
+using ShipPoints.ShipTracking;
 using VRage.Game.ModAPI;
-using VRage.Utils;
 using static Math0424.Networking.MyEasyNetworkManager;
 
 namespace Math0424.Networking

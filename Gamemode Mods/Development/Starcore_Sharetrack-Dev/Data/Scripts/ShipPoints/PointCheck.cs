@@ -5,30 +5,23 @@ using System.Text;
 using CoreSystems.Api;
 using DefenseShields;
 using Draygo.API;
-using Math0424.Networking;
 using Math0424.ShipPoints;
 using RelativeTopSpeed;
-using Sandbox.Definitions;
-using Sandbox.Engine.Physics;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
-using SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.ShipPoints.MatchTimer;
-using SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.Data.Scripts.ShipPoints;
 using SENetworkAPI;
-using ShipPoints.Commands;
 using ShipPoints.Data.Scripts.ShipPoints.Networking;
-using VRage.Game;
-using VRage.Game.Components;
-using VRage.Game.Entity;
+using ShipPoints.MatchTiming;
 using VRage.Game.ModAPI;
 using VRage.Input;
 using VRage.ModAPI;
 using VRage.Utils;
 using VRageMath;
+using ShipPoints.ShipTracking;
 using static Math0424.Networking.MyNetworkHandler;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 
-namespace klime.PointCheck
+namespace ShipPoints
 {
     public class PointCheck
     {
@@ -519,6 +512,8 @@ namespace klime.PointCheck
         {
             foreach (var shipTracker in TrackingManager.I.TrackedGrids.Values)
             {
+                shipTracker.Update();
+
                 var fn = shipTracker.FactionName;
                 var o = shipTracker.OwnerName;
                 var nd = shipTracker.IsFunctional;

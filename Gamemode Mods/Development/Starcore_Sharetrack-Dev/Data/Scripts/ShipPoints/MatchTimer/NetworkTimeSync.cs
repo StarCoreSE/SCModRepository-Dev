@@ -4,7 +4,7 @@ using Sandbox.ModAPI;
 using VRage.Game.Components;
 using VRage.Utils;
 
-namespace SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.ShipPoints.MatchTimer
+namespace ShipPoints.MatchTiming
 {
     /// <summary>
     ///     Packet used for syncing time betweeen client and server.

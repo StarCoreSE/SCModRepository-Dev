@@ -1,10 +1,9 @@
 ﻿using System;
-using klime.PointCheck;
 using Sandbox.ModAPI;
 using VRage.Game.Components;
 using VRage.Utils;
 
-namespace SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.ShipPoints.MatchTimer
+namespace ShipPoints.MatchTiming
 {
     /// <summary>
     ///     Keeps track of the match timer for networking and other mods.

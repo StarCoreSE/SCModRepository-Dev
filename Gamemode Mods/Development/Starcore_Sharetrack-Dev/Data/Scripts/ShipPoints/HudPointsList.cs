@@ -1,26 +1,23 @@
 ﻿using CoreSystems.Api;
 using DefenseShields;
 using Draygo.API;
-using klime.PointCheck;
 using RelativeTopSpeed;
 using Sandbox.Definitions;
 using Sandbox.ModAPI;
-using SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.ShipPoints.MatchTimer;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization.Formatters;
 using System.Text;
-using System.Threading.Tasks;
-using Sandbox.Game.Entities;
+using ShipPoints.MatchTiming;
+using ShipPoints.ShipTracking;
 using VRage.Game;
-using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRageMath;
 using static VRageRender.MyBillboard;
 
-namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.Data.Scripts.ShipPoints
+namespace ShipPoints
 {
+    /// <summary>
+    /// Shift-T screen
+    /// </summary>
     internal class HudPointsList
     {
         #region APIs

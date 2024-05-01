@@ -1,14 +1,8 @@
 ﻿using ProtoBuf;
-using Sandbox.ModAPI;
+using ShipPoints.ShipTracking;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.Data.Scripts.ShipPoints;
-using klime.PointCheck;
 
-namespace Scripts.ShipPoints.HeartNetwork.Custom
+namespace ShipPoints.HeartNetworking.Custom
 {
     /// <summary>
     /// Packet used for syncing tracked grids.

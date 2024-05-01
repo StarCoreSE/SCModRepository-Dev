@@ -1,20 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using CoreSystems.Api;
 using DefenseShields;
-using klime.PointCheck;
 using Sandbox.Definitions;
 using Sandbox.Game.Entities;
-using Sandbox.Game.GUI.DebugInputComponents;
-using Sandbox.Game.Weapons;
 using Sandbox.ModAPI;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 
-namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.Data.Scripts.ShipPoints
+namespace ShipPoints.ShipTracking
 {
     internal class GridStats // TODO convert this to be event-driven. OnBlockPlace, etc. Keep a queue.
     {
@@ -23,6 +17,8 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
 
         private readonly HashSet<IMySlimBlock> _slimBlocks;
         private readonly HashSet<IMyCubeBlock> _fatBlocks = new HashSet<IMyCubeBlock>();
+
+        public bool NeedsUpdate { get; private set; } = true;
 
         #region Public Methods
 
@@ -54,6 +50,11 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
 
         public void Update()
         {
+            UpdateShieldStats();
+
+            if (!NeedsUpdate)
+                return;
+
             BattlePoints = 0;
             OffensivePoints = 0;
             PowerPoints = 0;
@@ -66,8 +67,9 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
                 CalculateCost(block);
 
             UpdateGlobalStats();
-            UpdateShieldStats();
             UpdateWeaponStats();
+
+            NeedsUpdate = false;
         }
 
         #endregion
@@ -116,7 +118,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             if (block.FatBlock != null)
                 _fatBlocks.Add(block.FatBlock);
 
-            Update(); // TODO Limit how often this can happen per tick
+            NeedsUpdate = true;
         }
 
         private void OnBlockRemove(IMySlimBlock block)
@@ -128,7 +130,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             if (block.FatBlock != null)
                 _fatBlocks.Remove(block.FatBlock);
 
-            Update(); // TODO Limit how often this can happen per tick
+            NeedsUpdate = true;
         }
 
         #endregion
@@ -190,7 +192,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             }
         }
 
-        private void UpdateShieldStats()
+        public void UpdateShieldStats()
         {
             var shieldController = ShieldApi.GetShieldBlock(Grid);
             if (shieldController == null)
