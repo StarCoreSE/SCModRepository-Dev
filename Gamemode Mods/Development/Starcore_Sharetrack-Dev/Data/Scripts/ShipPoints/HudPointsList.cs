@@ -115,7 +115,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
         {
             IMyCubeGrid focusedGrid = GetFocusedGrid();
             if (focusedGrid != null) 
-                ShiftTCals(focusedGrid);
+                ShiftTCalcs(focusedGrid);
             else if(_statMessage.Visible)
             {
                 _statMessage.Message.Clear();
@@ -143,7 +143,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             }
         }
 
-        private void ShiftTCals(IMyCubeGrid focusedGrid)
+        private void ShiftTCalcs(IMyCubeGrid focusedGrid)
         {
             // Update once per second
             if (MatchTimer.I.Ticks % 60 != 0)
@@ -245,9 +245,9 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             sb.AppendFormat("<color=Green>Battle Points<color=White>: {0}\n", shipTracker.BattlePoints);
             sb.AppendFormat(
                 "<color=Orange>[<color=Red> {0}% <color=Orange>| <color=Green>{1}% <color=Orange>| <color=DeepSkyBlue>{2}% <color=Orange>| <color=LightGray>{3}% <color=Orange>]\n",
-                shipTracker.OffensivePoints / shipTracker.BattlePoints, shipTracker.PowerPoints / shipTracker.BattlePoints, shipTracker.MovementPoints / shipTracker.BattlePoints, shipTracker.RemainingPoints / shipTracker.BattlePoints);
+                shipTracker.OffensivePointsRatio, shipTracker.PowerPointsRatio, shipTracker.MovementPointsRatio, shipTracker.RemainingPointsRatio);
             sb.Append(
-                $"<color=Green>PD Investment<color=White>: <color=Orange>( <color=white>{shipTracker.PointDefensePoints / shipTracker.BattlePoints}% <color=Orange>|<color=Crimson> {shipTracker.PointDefensePoints / shipTracker.OffensivePoints}%<color=Orange> )\n");
+                $"<color=Green>PD Investment<color=White>: <color=Orange>( <color=white>{shipTracker.PointDefensePointsRatio}% <color=Orange>|<color=Crimson> {(shipTracker.OffensivePoints == 0 ? 0 : shipTracker.PointDefensePoints / shipTracker.OffensivePoints)}%<color=Orange> )\n");
             sb.AppendFormat(
                 "<color=Green>Shield Max HP<color=White>: {0} <color=Orange>(<color=White>{1}%<color=Orange>)\n",
                 totalShieldString, (int)shipTracker.MaxShieldHealth);
@@ -272,7 +272,11 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             if (MatchTimer.I.Ticks % 60 != 0)
                 return;
 
-            var tracked = new ShipTracker(focusedGrid);
+            ShipTracker tracked;
+            TrackingManager.I.TrackedGrids.TryGetValue(focusedGrid, out tracked);
+            if (tracked == null)
+                tracked = new ShipTracker(focusedGrid, false);
+
             var totalShield = tracked.CurrentShieldPercent;
             var totalShieldString = totalShield > 100
                 ? $"{Math.Round(totalShield / 100f, 2):F2} M"
@@ -333,8 +337,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             _statMessageBattleWeaponCountsist.Message.Append(_gunTextBuilder);
 
             _statMessageBattle.Message.Length = 0;
-            _statMessageBattle.Message.Append(string.Format("<color=White>{0} ({1}%)", totalShieldString,
-                (int)tracked.MaxShieldHealth));
+            _statMessageBattle.Message.Append($"<color=White>{totalShieldString} ({(int)tracked.MaxShieldHealth}%)");
 
             _statMessageBattle.Visible = true;
             _statMessageBattleWeaponCountsist.Visible = true;

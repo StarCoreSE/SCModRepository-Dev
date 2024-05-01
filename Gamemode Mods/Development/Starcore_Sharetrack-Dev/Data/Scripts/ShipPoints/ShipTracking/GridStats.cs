@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CoreSystems.Api;
 using DefenseShields;
 using klime.PointCheck;
+using Sandbox.Definitions;
 using Sandbox.Game.Entities;
 using Sandbox.Game.GUI.DebugInputComponents;
 using Sandbox.Game.Weapons;
@@ -20,7 +21,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
         private ShieldApi ShieldApi => PointCheck.I.ShieldApi;
         private WcApi WcApi => PointCheck.I.WcApi;
 
-        private readonly HashSet<IMySlimBlock> _slimBlocks = new HashSet<IMySlimBlock>();
+        private readonly HashSet<IMySlimBlock> _slimBlocks;
         private readonly HashSet<IMyCubeBlock> _fatBlocks = new HashSet<IMyCubeBlock>();
 
         #region Public Methods
@@ -29,8 +30,17 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
         {
             Grid = grid;
 
+            List<IMySlimBlock> allSlimBlocks = new List<IMySlimBlock>();
+            Grid.GetBlocks(allSlimBlocks);
+            _slimBlocks = allSlimBlocks.ToHashSet();
+
+            foreach (var block in _slimBlocks)
+                if (block.FatBlock != null)
+                    _fatBlocks.Add(block.FatBlock);
+
             Grid.OnBlockAdded += OnBlockAdd;
             Grid.OnBlockRemoved += OnBlockRemove;
+            Update();
         }
 
         public void Close()
@@ -68,6 +78,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
         // Global Stats
         public int BlockCount { get; private set; } = 0;
         public int HeavyArmorCount { get; private set; } = 0;
+        public int CockpitCount { get; private set; } = 0;
         public int PCU { get; private set; } = 0;
         public readonly Dictionary<string, int> BlockCounts = new Dictionary<string, int>();
         public readonly Dictionary<string, int> SpecialBlockCounts = new Dictionary<string, int>();
@@ -86,6 +97,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
         public float OriginalMaxShieldHealth { get; private set; } = -1;
         public float MaxShieldHealth { get; private set; } = -1;
         public float CurrentShieldPercent { get; private set; } = -1;
+        public float CurrentShieldHeat { get; private set; } = -1;
 
         // Weapon Stats
         public readonly Dictionary<string, int> WeaponCounts = new Dictionary<string, int>();
@@ -102,6 +114,8 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             _slimBlocks.Add(block);
             if (block.FatBlock != null)
                 _fatBlocks.Add(block.FatBlock);
+
+            Update(); // TODO Limit how often this can happen per tick
         }
 
         private void OnBlockRemove(IMySlimBlock block)
@@ -112,6 +126,8 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             _slimBlocks.Remove(block);
             if (block.FatBlock != null)
                 _fatBlocks.Remove(block.FatBlock);
+
+            Update(); // TODO Limit how often this can happen per tick
         }
 
         #endregion
@@ -139,10 +155,10 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
                     TotalThrust += ((IMyThrust)block).MaxEffectiveThrust;
 
                 else if (block is IMyGyro)
-                    TotalTorque += ((IMyGyro)block).GyroPower;
+                    TotalTorque += ((MyGyroDefinition)MyDefinitionManager.Static.GetDefinition((block as IMyGyro).BlockDefinition)).ForceMagnitude * (block as IMyGyro).GyroStrengthMultiplier;
 
                 else if (block is IMyPowerProducer)
-                    TotalPower += ((IMyPowerProducer)block).CurrentOutput;
+                    TotalPower += ((IMyPowerProducer)block).MaxOutput;
 
                 else if (!WcApi.HasCoreWeapon((MyEntity)block))
                 {
@@ -156,6 +172,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
                     
             }
 
+            CockpitCount = 0;
             BlockCount = ((MyCubeGrid)Grid).BlocksCount;
             PCU = ((MyCubeGrid)Grid).BlocksPCU;
             HeavyArmorCount = 0;
@@ -178,6 +195,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
                 OriginalMaxShieldHealth = -1;
                 MaxShieldHealth = -1;
                 CurrentShieldPercent = -1;
+                CurrentShieldHeat = -1;
                 return;
             }
 
@@ -185,6 +203,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
             if (OriginalMaxShieldHealth == -1 && !ShieldApi.IsFortified(shieldController))
                 OriginalMaxShieldHealth = MaxShieldHealth;
             CurrentShieldPercent = ShieldApi.GetShieldPercent(shieldController);
+            CurrentShieldHeat = ShieldApi.GetShieldHeat(shieldController);
         }
 
         private void UpdateWeaponStats()
@@ -229,6 +248,8 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
                 blockPoints += (int)(blockPoints * thiSpecialBlockCountsockCount * thisClimbingCostMult);
 
             {
+                if (block is IMyShipController)
+                    CockpitCount++;
                 if (block is IMyThrust || block is IMyGyro)
                     MovementPoints += blockPoints;
                 if (block is IMyPowerProducer)

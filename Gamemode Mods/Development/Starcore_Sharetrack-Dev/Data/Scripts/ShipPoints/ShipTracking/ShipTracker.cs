@@ -21,25 +21,23 @@ namespace klime.PointCheck
     public class ShipTracker
     {
         public IMyCubeGrid Grid { get; private set; }
-        public IMyPlayer Owner { get; private set; }
-        public long OwnerId { get; private set; }
-        public IMyCharacter Pilot { get; private set; }
-        public bool IsFunctional { get; private set; } = false;
-
-
+        public IMyPlayer Owner => MyAPIGateway.Players.GetPlayerControllingEntity(Grid) ?? PointCheck.GetOwner(OwnerId);
+        public long OwnerId => Grid?.BigOwners.Count > 0 ? Grid?.BigOwners[0] ?? -1 : -1;
 
 
         public string GridName => Grid.DisplayName;
         public float Mass => ((MyCubeGrid)Grid).GetCurrentMass();
         public Vector3 Position => Grid.Physics.CenterOfMassWorld;
         public IMyFaction OwnerFaction => MyAPIGateway.Session?.Factions?.TryGetPlayerFaction(OwnerId);
+        public string FactionName => OwnerFaction?.Name ?? "None";
         public Vector3 FactionColor => ColorMaskToRgb(OwnerFaction?.CustomColor ?? Vector3.Zero);
-        public string OwnerName => Pilot?.DisplayName ?? Owner?.DisplayName ?? "Unowned";
+        public string OwnerName => Owner?.DisplayName ?? "Unowned";
 
         #region GridStats Pointers
 
         #region Global Stats
 
+        public bool IsFunctional => TotalPower > 0 && TotalTorque > 0 && CockpitCount > 0;
         public int BlockCount
         {
             get
@@ -57,6 +55,16 @@ namespace klime.PointCheck
                 int total = 0;
                 foreach (var stats in _gridStats.Values)
                     total += stats.HeavyArmorCount;
+                return total;
+            }
+        }
+        public int CockpitCount
+        {
+            get
+            {
+                int total = 0;
+                foreach (var stats in _gridStats.Values)
+                    total += stats.CockpitCount;
                 return total;
             }
         }
@@ -107,11 +115,11 @@ namespace klime.PointCheck
                 Dictionary<string, int> blockCounts = new Dictionary<string, int>();
                 foreach (var stats in _gridStats.Values)
                 {
-                    foreach (var key in stats.SpecialBlockCounts.Keys)
+                    foreach (var kvp in stats.SpecialBlockCounts)
                     {
-                        if (!blockCounts.ContainsKey(key))
-                            blockCounts.Add(key, 0);
-                        blockCounts[key] += stats.SpecialBlockCounts[key];
+                        if (!blockCounts.ContainsKey(kvp.Key))
+                            blockCounts.Add(kvp.Key, 0);
+                        blockCounts[kvp.Key] += kvp.Value;
                     }
                 }
 
@@ -142,6 +150,8 @@ namespace klime.PointCheck
                 return total;
             }
         }
+
+        public float OffensivePointsRatio => BattlePoints == 0 ? 0 : OffensivePoints / BattlePoints;
         public int PowerPoints
         {
             get
@@ -152,6 +162,8 @@ namespace klime.PointCheck
                 return total;
             }
         }
+        public float PowerPointsRatio => BattlePoints == 0 ? 0 : PowerPoints / BattlePoints;
+
         public int MovementPoints
         {
             get
@@ -162,6 +174,8 @@ namespace klime.PointCheck
                 return total;
             }
         }
+        public float MovementPointsRatio => BattlePoints == 0 ? 0 : MovementPoints / BattlePoints;
+
         public int PointDefensePoints
         {
             get
@@ -172,8 +186,11 @@ namespace klime.PointCheck
                 return total;
             }
         }
+        public float PointDefensePointsRatio => BattlePoints == 0 ? 0 : PointDefensePoints / BattlePoints;
+
 
         public int RemainingPoints => BattlePoints - OffensivePoints - PowerPoints - MovementPoints - PointDefensePoints;
+        public int RemainingPointsRatio => BattlePoints == 0 ? 0 : RemainingPoints / BattlePoints;
 
         #endregion
 
@@ -209,6 +226,16 @@ namespace klime.PointCheck
                 return total;
             }
         }
+        public float CurrentShieldHeat
+        {
+            get
+            {
+                float total = 0;
+                foreach (var stats in _gridStats.Values)
+                    total += stats.CurrentShieldHeat;
+                return total;
+            }
+        }
 
         #endregion
 
@@ -221,11 +248,11 @@ namespace klime.PointCheck
                 Dictionary<string, int> blockCounts = new Dictionary<string, int>();
                 foreach (var stats in _gridStats.Values)
                 {
-                    foreach (var key in stats.WeaponCounts.Keys)
+                    foreach (var kvp in stats.WeaponCounts)
                     {
-                        if (!blockCounts.ContainsKey(key))
-                            blockCounts.Add(key, 0);
-                        blockCounts[key] += stats.WeaponCounts[key];
+                        if (!blockCounts.ContainsKey(kvp.Key))
+                            blockCounts.Add(kvp.Key, 0);
+                        blockCounts[kvp.Key] += kvp.Value;
                     }
                 }
 
@@ -252,6 +279,7 @@ namespace klime.PointCheck
         public ShipTracker(IMyCubeGrid grid, bool showOnHud = true)
         {
             Grid = grid;
+            _gridStats.Add(Grid, new GridStats(Grid));
 
             Update();
 
@@ -287,6 +315,7 @@ namespace klime.PointCheck
             if (Grid?.Physics == null) // TODO transfer to a different grid
                 return;
 
+            MyAPIGateway.Utilities.ShowNotification("F: " + IsFunctional, 5000);
             // TODO: Update pilots
         }
 
@@ -295,7 +324,6 @@ namespace klime.PointCheck
             if (_gridStats.ContainsKey(grid))
                 return;
             _gridStats.Add(grid, new GridStats(grid));
-            _gridStats[grid].Update();
         }
 
         private void OnGridRemove(IMyGridGroupData groupData, IMyCubeGrid grid, IMyGridGroupData newGroupData)
@@ -527,9 +555,9 @@ namespace klime.PointCheck
                 _nametag.Message.Append(nameTagText.TrimStart('\n'));
                 _nametag.Offset = -_nametag.GetTextLength() / 2;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Handle exceptions here, or consider logging them.
+                Log.Error(ex);
             }
         }
 

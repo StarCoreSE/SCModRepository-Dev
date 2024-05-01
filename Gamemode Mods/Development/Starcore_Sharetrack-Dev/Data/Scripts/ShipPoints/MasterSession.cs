@@ -67,6 +67,7 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
         {
             try
             {
+                HeartNetwork.I.Update();
                 TrackingManager.UpdateAfterSimulation();
                 _pointCheck.UpdateAfterSimulation();
             }

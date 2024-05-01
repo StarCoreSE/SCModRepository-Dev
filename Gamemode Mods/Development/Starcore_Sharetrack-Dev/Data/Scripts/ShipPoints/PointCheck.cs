@@ -346,44 +346,44 @@ namespace klime.PointCheck
             var var = MyAPIGateway.Utilities.SerializeFromBinary<string>((byte[])obj);
 
             // Check if the deserialization was successful
-            if (var != null)
+            if (var == null)
+                return;
+
+            // Split the string into an array of substrings using the ';' delimiter
+            var split = var.Split(';');
+
+            // Iterate through each substring (s) in the split array
+            foreach (var s in split)
             {
-                // Split the string into an array of substrings using the ';' delimiter
-                var split = var.Split(';');
+                // Split the substring (s) into an array of parts using the '@' delimiter
+                var parts = s.Split('@');
+                int value;
 
-                // Iterate through each substring (s) in the split array
-                foreach (var s in split)
+                // Check if there are exactly 2 parts and if the second part is a valid integer (value)
+                if (parts.Length != 2 || !int.TryParse(parts[1], out value))
+                    continue;
+
+                // Trim the first part (name) and remove any extra whitespaces
+                var name = parts[0].Trim();
+                var lsIndex = name.IndexOf("{LS}");
+
+                // Check if the name contains "{LS}"
+                if (lsIndex != -1)
                 {
-                    // Split the substring (s) into an array of parts using the '@' delimiter
-                    var parts = s.Split('@');
-                    int value;
+                    // Replace "{LS}" with "Large" and update the PointValues SendingDictionary
+                    var largeName = name.Substring(0, lsIndex) + "Large" +
+                                    name.Substring(lsIndex + "{LS}".Length);
+                    PointValues[largeName] = value;
 
-                    // Check if there are exactly 2 parts and if the second part is a valid integer (value)
-                    if (parts.Length == 2 && int.TryParse(parts[1], out value))
-                    {
-                        // Trim the first part (name) and remove any extra whitespaces
-                        var name = parts[0].Trim();
-                        var lsIndex = name.IndexOf("{LS}");
-
-                        // Check if the name contains "{LS}"
-                        if (lsIndex != -1)
-                        {
-                            // Replace "{LS}" with "Large" and update the PointValues SendingDictionary
-                            var largeName = name.Substring(0, lsIndex) + "Large" +
-                                            name.Substring(lsIndex + "{LS}".Length);
-                            PointValues[largeName] = value;
-
-                            // Replace "{LS}" with "Small" and update the PointValues SendingDictionary
-                            var smallName = name.Substring(0, lsIndex) + "Small" +
-                                            name.Substring(lsIndex + "{LS}".Length);
-                            PointValues[smallName] = value;
-                        }
-                        else
-                        {
-                            // Update the PointValues SendingDictionary directly
-                            PointValues[name] = value;
-                        }
-                    }
+                    // Replace "{LS}" with "Small" and update the PointValues SendingDictionary
+                    var smallName = name.Substring(0, lsIndex) + "Small" +
+                                    name.Substring(lsIndex + "{LS}".Length);
+                    PointValues[smallName] = value;
+                }
+                else
+                {
+                    // Update the PointValues SendingDictionary directly
+                    PointValues[name] = value;
                 }
             }
         }
@@ -426,6 +426,8 @@ namespace klime.PointCheck
                 MyKeys.M, () =>
                 {
                     IMyCubeGrid castGrid = RaycastGridFromCamera();
+                    if (castGrid == null)
+                        return;
 
                     if (!TrackingManager.I.IsGridTracked(castGrid))
                         TrackingManager.I.TrackGrid(castGrid);
@@ -542,10 +544,10 @@ namespace klime.PointCheck
                     continue;
                 }
 
-                mbp[fn] += shipTracker.MiscBps;
-                pbp[fn] += shipTracker.PowerBps;
-                obp[fn] += shipTracker.OffensiveBps;
-                mobp[fn] += shipTracker.MovementBps;
+                mbp[fn] += shipTracker.RemainingPoints;
+                pbp[fn] += shipTracker.PowerPoints;
+                obp[fn] += shipTracker.OffensivePoints;
+                mobp[fn] += shipTracker.MovementPoints;
 
                 var g = shipTracker.WeaponCounts.Values.Sum();
                 var pwr = FormatPower(Math.Round(shipTracker.TotalPower, 1));
@@ -569,17 +571,15 @@ namespace klime.PointCheck
         private string CreateDisplayString(string ownerName, ShipTracker d, int g, string power, string thrust)
         {
             var ownerDisplay = ownerName != null ? ownerName.Substring(0, Math.Min(ownerName.Length, 7)) : d.GridName;
-            var integrityPercent = (int)(d.CurrentIntegrity / d.OriginalIntegrity * 100);
-            var shieldPercent = (int)d.MaxShieldHealth;
+            var integrityPercent = (int)(d.MaxShieldHealth / d.OriginalMaxShieldHealth * 100);
+            var shieldPercent = (int)d.CurrentShieldPercent;
             var shieldColor = shieldPercent <= 0
                 ? "red"
-                : $"{255},{255 - d.ShieldHeat * 20},{255 - d.ShieldHeat * 20}";
+                : $"{255},{255 - d.CurrentShieldHeat * 20},{255 - d.CurrentShieldHeat * 20}";
             var weaponColor = g == 0 ? "red" : "orange";
             var functionalColor = d.IsFunctional ? "white" : "red";
-            return string.Format(
-                "<color={0}>{1,-8}{2,3}%<color={3}> P:<color=orange>{4,3}<color={5}> T:<color=orange>{6,3}<color={7}> W:<color={8}>{9,3}<color={10}> S:<color={11}>{12,3}%<color=white>",
-                functionalColor, ownerDisplay, integrityPercent, functionalColor, power, functionalColor, thrust,
-                functionalColor, weaponColor, g, functionalColor, shieldColor, shieldPercent);
+            return
+                $"<color={functionalColor}>{ownerDisplay,-8}{integrityPercent,3}%<color={functionalColor}> P:<color=orange>{power,3}<color={functionalColor}> T:<color=orange>{thrust,3}<color={functionalColor}> W:<color={weaponColor}>{g,3}<color={functionalColor}> S:<color={shieldColor}>{shieldPercent,3}%<color=white>";
         }
 
 
