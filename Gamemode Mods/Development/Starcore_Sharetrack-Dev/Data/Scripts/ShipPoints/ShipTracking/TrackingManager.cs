@@ -32,7 +32,7 @@ namespace ShipPoints.ShipTracking
 
         public void BulkTrackGrids(long[] gridIds)
         {
-            Log.Info("Recive bulk track request!");
+            Log.Info($"Receive bulk track request with {gridIds.Length} items!");
             List<long> gridIds_List = new List<long>(gridIds);
             foreach (var grid in AllGrids)
             {
