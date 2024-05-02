@@ -53,6 +53,9 @@ namespace ShipPoints.ShipTracking
         public void TrackGrid(IMyCubeGrid grid, bool share = true)
         {
             Log.Info("Send track request!");
+            if (TrackedGrids.ContainsKey(grid))
+                TrackedGrids[grid].OnClose(grid);
+
             ShipTracker tracker = new ShipTracker(grid);
             TrackedGrids.Add(grid, tracker);
 
