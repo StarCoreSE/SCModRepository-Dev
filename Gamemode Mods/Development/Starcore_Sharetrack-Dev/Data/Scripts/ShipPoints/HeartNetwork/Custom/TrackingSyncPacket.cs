@@ -1,6 +1,7 @@
 ﻿using ProtoBuf;
 using ShipPoints.ShipTracking;
 using System;
+using Sandbox.ModAPI;
 
 namespace ShipPoints.HeartNetworking.Custom
 {
@@ -37,10 +38,10 @@ namespace ShipPoints.HeartNetworking.Custom
             if (IsAddingReference == null)
                 TrackingManager.I.BulkTrackGrids(TrackedGrids);
             else if ((bool) IsAddingReference)
-                TrackingManager.I.TrackGrid(TrackedGrids[0], false);
+                TrackingManager.I.TrackGrid(TrackedGrids[0], MyAPIGateway.Session.IsServer);
             else
-                TrackingManager.I.UntrackGrid(TrackedGrids[0], false);
-            Log.Info("Recieve track request! " + (IsAddingReference == null));
+                TrackingManager.I.UntrackGrid(TrackedGrids[0], MyAPIGateway.Session.IsServer);
+            Log.Info("Receive track request! " + (IsAddingReference == null));
         }
     }
 }
