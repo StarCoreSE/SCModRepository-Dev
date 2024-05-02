@@ -233,7 +233,7 @@ namespace ShipPoints
                                 !grid.HaSpecialBlockCountsockWithSubtypeId("RivalAIRemoteControlLarge"))
                                 continue;
 
-                            TrackingManager.I.TrackGrid(grid);
+                            TrackingManager.I.TrackGrid(grid, false);
                         }
                     }
                 }
