@@ -75,6 +75,7 @@ namespace ShipPoints.ShipTracking
         public void TrackGrid(long gridId, bool share = true)
         {
             IMyCubeGrid grid = MyAPIGateway.Entities.GetEntityById(gridId) as IMyCubeGrid;
+            MyAPIGateway.Utilities.SendMessage("TrackGrid called on EntityId " + gridId + " | Valid: " + (grid == null));
             if (grid == null)
             {
                 _queuedGridTracks.Add(gridId);
