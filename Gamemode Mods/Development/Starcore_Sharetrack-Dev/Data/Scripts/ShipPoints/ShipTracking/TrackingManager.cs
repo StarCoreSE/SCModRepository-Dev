@@ -52,14 +52,11 @@ namespace ShipPoints.ShipTracking
 
         public void TrackGrid(IMyCubeGrid grid, bool share = true)
         {
-            MyAPIGateway.Utilities.SendMessage("58 TrackGrid called on Grid " + grid.DisplayName + " | Share: " + share);
-
-            if (!AllGrids.Contains(grid))// Theoretically impossible???
-                AllGrids.Add(grid);
-
             Log.Info("Send track request!");
             ShipTracker tracker = new ShipTracker(grid);
             TrackedGrids.Add(grid, tracker);
+
+            MyAPIGateway.Utilities.SendMessage("59 TrackGrid called on Grid " + grid.DisplayName + " | Share: " + share + $" Tracked: {TrackedGrids.Count}");
 
             if (!share)
                 return;
@@ -89,6 +86,7 @@ namespace ShipPoints.ShipTracking
 
         public void UntrackGrid(IMyCubeGrid grid, bool share = true)
         {
+            MyAPIGateway.Utilities.SendMessage("78 UnTrackGrid called on " + grid.DisplayName + " | Share: " + share);
             if (!TrackedGrids.ContainsKey(grid))
                 return;
 
