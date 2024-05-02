@@ -34,7 +34,7 @@ namespace ShipPoints.ShipTracking
         {
             Log.Info($"Receive bulk track request with {gridIds.Length} items!");
             List<long> gridIds_List = new List<long>(gridIds);
-            foreach (var grid in AllGrids)
+            foreach (var grid in TrackedGrids.Keys)
             {
                 if (gridIds.Contains(grid.EntityId))
                 {
@@ -53,6 +53,9 @@ namespace ShipPoints.ShipTracking
         public void TrackGrid(IMyCubeGrid grid, bool share = true)
         {
             Log.Info("Send track request!");
+            if (TrackedGrids.ContainsKey(grid))
+                TrackedGrids[grid].OnClose(grid);
+
             ShipTracker tracker = new ShipTracker(grid);
             TrackedGrids.Add(grid, tracker);
 
