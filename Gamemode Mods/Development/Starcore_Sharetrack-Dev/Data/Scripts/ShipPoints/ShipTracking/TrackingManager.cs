@@ -34,7 +34,7 @@ namespace ShipPoints.ShipTracking
         {
             Log.Info($"Receive bulk track request with {gridIds.Length} items!");
             List<long> gridIds_List = new List<long>(gridIds);
-            foreach (var grid in AllGrids)
+            foreach (var grid in TrackedGrids.Keys)
             {
                 if (gridIds.Contains(grid.EntityId))
                 {
