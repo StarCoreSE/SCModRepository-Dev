@@ -284,6 +284,9 @@ namespace ShipPoints.ShipTracking
             Grid.GetGridGroup(GridLinkTypeEnum.Physical).OnGridAdded += OnGridAdd;
             Grid.GetGridGroup(GridLinkTypeEnum.Physical).OnGridRemoved += OnGridRemove;
 
+            if (MyAPIGateway.Utilities.IsDedicated)
+                return;
+
             _nametag = new HudAPIv2.HUDMessage(new StringBuilder("Initializing..."), Vector2D.Zero, font: "BI_SEOutlined",
                 blend: BlendTypeEnum.PostPP, hideHud: false, shadowing: true);
             UpdateHud();
@@ -511,7 +514,7 @@ namespace ShipPoints.ShipTracking
         /// </summary>
         public void UpdateHud()
         {
-            if (_nametag == null)
+            if (_nametag == null || MyAPIGateway.Utilities.IsDedicated)
                 return;
 
             try
