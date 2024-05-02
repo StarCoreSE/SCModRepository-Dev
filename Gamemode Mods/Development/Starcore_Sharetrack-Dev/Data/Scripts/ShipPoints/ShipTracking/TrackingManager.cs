@@ -75,7 +75,7 @@ namespace ShipPoints.ShipTracking
         public void TrackGrid(long gridId, bool share = true)
         {
             IMyCubeGrid grid = MyAPIGateway.Entities.GetEntityById(gridId) as IMyCubeGrid;
-            MyAPIGateway.Utilities.SendMessage("TrackGrid called on EntityId " + gridId + " | Valid: " + (grid == null));
+            MyAPIGateway.Utilities.SendMessage("78 TrackGrid called on EntityId " + gridId + " | Valid: " + (grid != null));
             if (grid == null)
             {
                 _queuedGridTracks.Add(gridId);
@@ -123,6 +123,7 @@ namespace ShipPoints.ShipTracking
         {
             TrackingSyncPacket packet = new TrackingSyncPacket(GetGridIds());
             HeartNetwork.I.SendToEveryone(packet);
+            MyAPIGateway.Utilities.SendMessage("126 ServerDoSync called - packet gridids length: " + packet.TrackedGrids.Length);
         }
 
         #endregion

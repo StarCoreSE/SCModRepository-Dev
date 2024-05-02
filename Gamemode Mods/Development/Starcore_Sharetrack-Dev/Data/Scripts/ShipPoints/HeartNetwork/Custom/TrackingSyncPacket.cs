@@ -42,6 +42,7 @@ namespace ShipPoints.HeartNetworking.Custom
             else
                 TrackingManager.I.UntrackGrid(TrackedGrids[0], MyAPIGateway.Session.IsServer);
             Log.Info("Receive track request! " + (IsAddingReference == null));
+            MyAPIGateway.Utilities.SendMessage("45 Receive track request! " + TrackedGrids.Length + " | " + (IsAddingReference == null));
         }
     }
 }
