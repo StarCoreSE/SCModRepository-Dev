@@ -277,6 +277,7 @@ namespace ShipPoints
                     else
                     {
                         _writer.WriteLine(_sb);
+                        MyAPIGateway.Utilities.SendMessage(_sb.ToString()); // TODO remove
                         _writer.Flush();
                     }
 
