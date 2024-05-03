@@ -180,20 +180,16 @@ namespace ShipPoints.ShipTracking
 
         private void OnEntityAdd(IMyEntity entity)
         {
-            // Autotrack grids with specified blocks.
-            var block = entity as IMyCubeBlock;
-            if (block != null &&
-                AutoTrackSubtypes.Contains(block.BlockDefinition.SubtypeName))
-            {
-                TrackGrid(block.CubeGrid, false);
-                return;
-            }
-
             var grid = entity as IMyCubeGrid;
             if (grid?.Physics == null)
                 return;
 
             AllGrids.Add(grid);
+            grid.GetBlocks(null, block =>
+            {
+                CheckAutotrack(block);
+                return false;
+            });
 
             if (_queuedGridTracks.Contains(grid.EntityId))
             {
@@ -228,6 +224,14 @@ namespace ShipPoints.ShipTracking
                 gridIds.Add(grid.EntityId);
             }
             return gridIds.ToArray();
+        }
+
+        private void CheckAutotrack(IMySlimBlock block)
+        {
+            if (block.FatBlock == null ||
+                !AutoTrackSubtypes.Contains(block.BlockDefinition.Id.SubtypeName))
+                return;
+            TrackGrid(block.CubeGrid, false);
         }
     }
 }

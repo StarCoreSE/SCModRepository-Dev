@@ -5,11 +5,11 @@ using ShipPoints.HeartNetworking.Custom;
 
 namespace ShipPoints.HeartNetworking
 {
-    [ProtoInclude(1, typeof(TrackingSyncPacket))]
-    [ProtoInclude(2, typeof(SyncRequestPacket))]
-    [ProtoInclude(3, typeof(GameStatePacket))]
-    [ProtoInclude(4, typeof(ProblemReportPacket))]
-    [ProtoInclude(5, typeof(ShieldFillRequestPacket))]
+    [ProtoInclude(91, typeof(TrackingSyncPacket))]
+    [ProtoInclude(92, typeof(SyncRequestPacket))]
+    [ProtoInclude(93, typeof(GameStatePacket))]
+    [ProtoInclude(94, typeof(ProblemReportPacket))]
+    [ProtoInclude(95, typeof(ShieldFillRequestPacket))]
 
     [ProtoContract(UseProtoMembersOnly = true)]
     public abstract partial class PacketBase
