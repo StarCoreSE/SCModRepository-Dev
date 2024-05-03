@@ -1,17 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using klime.PointCheck;
 using Math0424.Networking;
-using Sandbox.ModAPI;
-using Scripts.ShipPoints.HeartNetwork;
 using SENetworkAPI;
 using ShipPoints.Commands;
+using ShipPoints.HeartNetworking;
+using ShipPoints.ShipTracking;
 using VRage.Game.Components;
 
-namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.Data.Scripts.ShipPoints
+namespace ShipPoints
 {
     [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation)]
     internal class MasterSession : MySessionComponentBase
@@ -67,6 +62,8 @@ namespace SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.
         {
             try
             {
+                HeartNetwork.I.Update();
+                TrackingManager.UpdateAfterSimulation();
                 _pointCheck.UpdateAfterSimulation();
             }
             catch (Exception ex)

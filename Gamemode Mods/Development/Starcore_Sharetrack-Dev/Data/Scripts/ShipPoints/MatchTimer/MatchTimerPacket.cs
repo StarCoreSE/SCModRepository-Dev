@@ -3,7 +3,7 @@ using ProtoBuf;
 using Sandbox.ModAPI;
 using VRage.Utils;
 
-namespace SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.ShipPoints.MatchTimer
+namespace ShipPoints.MatchTiming
 {
     [ProtoContract]
     internal class MatchTimerPacket

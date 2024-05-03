@@ -1,14 +1,8 @@
 ﻿using ShipPoints.Data.Scripts.ShipPoints.Networking;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using klime.PointCheck;
 using Math0424.Networking;
 using Sandbox.ModAPI;
-using SCModRepository.Gamemode_Mods.Stable.Starcore_Sharetrack.Data.Scripts.ShipPoints.MatchTimer;
-using VRage.Utils;
+using ShipPoints.MatchTiming;
 
 namespace ShipPoints.Commands
 {

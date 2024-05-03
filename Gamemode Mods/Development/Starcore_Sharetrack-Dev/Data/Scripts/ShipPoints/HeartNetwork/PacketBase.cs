@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ProtoBuf;
-using Scripts.ShipPoints.HeartNetwork.Custom;
+using ShipPoints.HeartNetworking.Custom;
 
-namespace Scripts.ShipPoints.HeartNetwork
+namespace ShipPoints.HeartNetworking
 {
     [ProtoInclude(1, typeof(TrackingSyncPacket))]
 
@@ -19,8 +15,7 @@ namespace Scripts.ShipPoints.HeartNetwork
         /// <param name="SenderSteamId"></param>
         public abstract void Received(ulong SenderSteamId);
 
-        public static Type[] Types = new Type[]
-        {
+        public static Type[] Types = {
             typeof(PacketBase),
             typeof(TrackingSyncPacket),
         };

@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using klime.PointCheck;
-using Math0424.ShipPoints;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
-using SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.Data.Scripts.ShipPoints;
+using ShipPoints;
+using ShipPoints.ShipTracking;
 using VRage.Game.ModAPI;
-using VRage.Utils;
 using static Math0424.Networking.MyEasyNetworkManager;
 
 namespace Math0424.Networking
@@ -47,51 +45,6 @@ namespace Math0424.Networking
                     TrackingManager.I.ServerDoSync();
                 }
 
-            if (e.PacketId == 1)
-            {
-                //inject for shared list
-
-                AllPlayers.Clear();
-                ListPlayers.Clear();
-                MyAPIGateway.Players.GetPlayers(ListPlayers);
-                foreach (var p in ListPlayers) AllPlayers.Add(p.SteamUserId);
-                //end
-
-
-                var packet = e.UnWrap<PacketGridData>();
-                if (MyAPIGateway.Multiplayer.IsServer)
-                {
-                    var x = MyEntities.GetEntityById(packet.Id);
-                    if (x != null && x is IMyCubeGrid)
-                    {
-                        if (packet.Value == 1) //add
-                        {
-                            //if (packet.value == 1 && MyAPIGateway.Session.IsUserAdmin(e.SenderId))
-                            if (PointCheck.Sending.ContainsKey(packet.Id))
-                                try
-                                {
-                                    PointCheck.Sending[packet.Id].Remove(e.SenderId);
-                                }
-                                catch
-                                {
-                                }
-                            else
-                                PointCheck.Sending.Add(packet.Id, new List<ulong>());
-
-                            //option 1
-                            //PointCheck.Sending[packet.id].Add(e.SenderId);
-
-                            foreach (var p in AllPlayers) PointCheck.Sending[packet.Id].Add(p);
-                        }
-
-                    }
-                }
-                else
-                {
-
-                }
-            }
-
             if (e.PacketId == 5)
                 if (MyAPIGateway.Session.IsUserAdmin(e.SenderId))
                 {
@@ -99,8 +52,8 @@ namespace Math0424.Networking
                         if (g != null && !g.MarkedForClose && g is MyCubeGrid)
                         {
                             var grid = g as MyCubeGrid;
-                            var block = PointCheck.I.ShApi.GetShieldBlock(grid);
-                            if (block != null) PointCheck.I.ShApi.SetCharge(block, 99999999999);
+                            var block = PointCheck.I.ShieldApi.GetShieldBlock(grid);
+                            if (block != null) PointCheck.I.ShieldApi.SetCharge(block, 99999999999);
                         }
 
                     MyAPIGateway.Utilities.ShowMessage("Shields", "Charged");

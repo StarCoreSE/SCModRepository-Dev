@@ -136,7 +136,7 @@ internal static class PointCheckHelpers
         { "HAS_Mammon", true },
         { "HAS_Nyx", true },
         { "ARYXRailgunTurret", true },
-        { "MCRNRailgunLB", true },
+        { "MCRNRailWeaponCountsB", true },
         { "K_SA_HeavyMetal_Spinal_Rotary", true },
         { "K_SA_HeavyMetal_Spinal_Rotary_Reskin", true },
         { "MetalStorm", true },

@@ -1,14 +1,9 @@
 ﻿using ProtoBuf;
-using Sandbox.ModAPI;
+using ShipPoints.ShipTracking;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SCModRepository_Dev.Gamemode_Mods.Development.Starcore_Sharetrack_Dev.Data.Scripts.ShipPoints;
-using klime.PointCheck;
+using Sandbox.ModAPI;
 
-namespace Scripts.ShipPoints.HeartNetwork.Custom
+namespace ShipPoints.HeartNetworking.Custom
 {
     /// <summary>
     /// Packet used for syncing tracked grids.
@@ -43,10 +38,10 @@ namespace Scripts.ShipPoints.HeartNetwork.Custom
             if (IsAddingReference == null)
                 TrackingManager.I.BulkTrackGrids(TrackedGrids);
             else if ((bool) IsAddingReference)
-                TrackingManager.I.TrackGrid(TrackedGrids[0], false);
+                TrackingManager.I.TrackGrid(TrackedGrids[0], MyAPIGateway.Session.IsServer);
             else
-                TrackingManager.I.UntrackGrid(TrackedGrids[0], false);
-            Log.Info("Recieve track request! " + (IsAddingReference == null));
+                TrackingManager.I.UntrackGrid(TrackedGrids[0], MyAPIGateway.Session.IsServer);
+            Log.Info("Receive track request! " + (IsAddingReference == null));
         }
     }
 }
