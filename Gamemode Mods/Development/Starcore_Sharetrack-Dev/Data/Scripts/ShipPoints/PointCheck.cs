@@ -384,7 +384,6 @@ namespace ShipPoints
                     pair.Value.Invoke();
         }
 
-
         private void UpdateTrackingData()
         {
             if (MatchTimer.I.Ticks % 60 != 0 || IntegretyMessage == null || !TextHudApi.Heartbeat)
@@ -474,16 +473,16 @@ namespace ShipPoints
             return thrustInMega > 1e2 ? $"{Math.Round(thrustInMega / 1e3, 2)}GN" : $"{thrustInMega}MN";
         }
 
-        private string CreateDisplayString(string ownerName, ShipTracker d, int g, string power, string thrust)
+        private string CreateDisplayString(string ownerName, ShipTracker tracker, int g, string power, string thrust)
         {
-            var ownerDisplay = ownerName != null ? ownerName.Substring(0, Math.Min(ownerName.Length, 7)) : d.GridName;
-            var integrityPercent = (int)(d.MaxShieldHealth / d.OriginalMaxShieldHealth * 100);
-            var shieldPercent = (int)d.CurrentShieldPercent;
+            var ownerDisplay = ownerName != null ? ownerName.Substring(0, Math.Min(ownerName.Length, 7)) : tracker.GridName;
+            var integrityPercent = (int)(tracker.GridIntegrity / tracker.OriginalGridIntegrity * 100); // TODO fix this to use hull integrity
+            var shieldPercent = (int)tracker.CurrentShieldPercent;
             var shieldColor = shieldPercent <= 0
                 ? "red"
-                : $"{255},{255 - d.CurrentShieldHeat * 20},{255 - d.CurrentShieldHeat * 20}";
+                : $"{255},{255 - tracker.CurrentShieldHeat * 20},{255 - tracker.CurrentShieldHeat * 20}";
             var weaponColor = g == 0 ? "red" : "orange";
-            var functionalColor = d.IsFunctional ? "white" : "red";
+            var functionalColor = tracker.IsFunctional ? "white" : "red";
             return
                 $"<color={functionalColor}>{ownerDisplay,-8}{integrityPercent,3}%<color={functionalColor}> P:<color=orange>{power,3}<color={functionalColor}> T:<color=orange>{thrust,3}<color={functionalColor}> W:<color={weaponColor}>{g,3}<color={functionalColor}> S:<color={shieldColor}>{shieldPercent,3}%<color=white>";
         }
@@ -533,22 +532,6 @@ namespace ShipPoints
             }
 
             return null;
-        }
-    }
-
-
-    public static class GridExtensions
-    {
-        public static bool HasSpecialBlocksWithSubtypeId(this IMyCubeGrid grid, params string[] subtypeId)
-        {
-            List<IMySlimBlock> allBlocks = new List<IMySlimBlock>();
-            grid?.GetBlocks(allBlocks, block => block.FatBlock != null);
-
-            foreach (IMySlimBlock block in allBlocks)
-                if (subtypeId.Contains(block.BlockDefinition.Id.SubtypeName))
-                    return true;
-
-            return false;
         }
     }
 }

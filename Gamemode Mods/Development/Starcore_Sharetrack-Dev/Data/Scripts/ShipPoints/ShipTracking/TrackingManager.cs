@@ -205,7 +205,6 @@ namespace ShipPoints.ShipTracking
 
         private void OnEntityRemove(IMyEntity entity)
         {
-
             if (!(entity is IMyCubeGrid) || entity.Physics == null)
                 return;
             var grid = (IMyCubeGrid) entity;

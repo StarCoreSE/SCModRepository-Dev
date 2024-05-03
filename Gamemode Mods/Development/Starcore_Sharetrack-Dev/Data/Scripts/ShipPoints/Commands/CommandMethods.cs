@@ -14,14 +14,20 @@ namespace ShipPoints.Commands
 
         public static void Start(string[] args)
         {
-            HeartNetwork.I.SendToServer(new GameStatePacket(true));
+            if (MyAPIGateway.Session.IsServer)
+                new GameStatePacket(true).Received(0);
+            else
+                HeartNetwork.I.SendToServer(new GameStatePacket(true));
             TakeOverControl(null);
             MyAPIGateway.Utilities.ShowNotification("HEY DUMBASS, IS DAMAGE ON?", 10000, "Red");
         }
 
         public static void End(string[] args)
         {
-            HeartNetwork.I.SendToServer(new GameStatePacket(true));
+            if (MyAPIGateway.Session.IsServer)
+                new GameStatePacket(false).Received(0);
+            else
+                HeartNetwork.I.SendToServer(new GameStatePacket(true));
             GiveUpControl(null);
         }
 
@@ -157,7 +163,10 @@ namespace ShipPoints.Commands
 
         public static void Shields(string[] args)
         {
-            HeartNetwork.I.SendToEveryone(new ShieldFillRequestPacket());
+            if (MyAPIGateway.Session.IsServer)
+                new ShieldFillRequestPacket().Received(0);
+            else
+                HeartNetwork.I.SendToEveryone(new ShieldFillRequestPacket());
         }
 
         public static void ReportProblem(string[] args)
