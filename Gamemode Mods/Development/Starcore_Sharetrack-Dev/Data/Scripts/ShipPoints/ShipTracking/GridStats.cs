@@ -50,8 +50,6 @@ namespace ShipPoints.ShipTracking
 
         public void Update()
         {
-            UpdateShieldStats();
-
             if (!NeedsUpdate)
                 return;
 
@@ -169,8 +167,12 @@ namespace ShipPoints.ShipTracking
                 else if (!WcApi.HasCoreWeapon((MyEntity)block))
                 {
                     string blockDisplayName = block.DefinitionDisplayNameText;
+                    if (blockDisplayName.Contains("Armor")) // This is a bit stupid. TODO find a better way to sort out armor blocks.
+                        continue;
+
                     float ignored = 0;
                     ShipTracker.ClimbingCostRename(ref blockDisplayName, ref ignored);
+                    ShipTracker.SpecialBlockRename(ref blockDisplayName, block);
                     if (!SpecialBlockCounts.ContainsKey(blockDisplayName))
                         SpecialBlockCounts.Add(blockDisplayName, 0);
                     SpecialBlockCounts[blockDisplayName]++;
@@ -189,25 +191,6 @@ namespace ShipPoints.ShipTracking
                 if (slimBlock.BlockDefinition.Id.SubtypeName.Contains("Heavy"))
                     HeavyArmorCount++;
             }
-        }
-
-        public void UpdateShieldStats()
-        {
-            var shieldController = ShieldApi.GetShieldBlock(Grid);
-            if (shieldController == null)
-            {
-                OriginalMaxShieldHealth = -1;
-                MaxShieldHealth = -1;
-                CurrentShieldPercent = -1;
-                CurrentShieldHeat = -1;
-                return;
-            }
-
-            MaxShieldHealth = ShieldApi.GetMaxHpCap(shieldController);
-            if (OriginalMaxShieldHealth == -1 && !ShieldApi.IsFortified(shieldController))
-                OriginalMaxShieldHealth = MaxShieldHealth;
-            CurrentShieldPercent = ShieldApi.GetShieldPercent(shieldController);
-            CurrentShieldHeat = ShieldApi.GetShieldHeat(shieldController);
         }
 
         private void UpdateWeaponStats()

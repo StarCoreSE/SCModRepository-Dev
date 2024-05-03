@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Text;
+using DefenseShields;
 using Draygo.API;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
@@ -14,6 +16,9 @@ namespace ShipPoints.ShipTracking
 {
     public class ShipTracker
     {
+        private ShieldApi ShieldApi => PointCheck.I.ShieldApi;
+
+
         public IMyCubeGrid Grid { get; private set; }
         public IMyPlayer Owner => MyAPIGateway.Players.GetPlayerControllingEntity(Grid) ?? PointCheck.GetOwner(OwnerId);
         public long OwnerId => Grid?.BigOwners.Count > 0 ? Grid?.BigOwners[0] ?? -1 : -1;
@@ -190,44 +195,35 @@ namespace ShipPoints.ShipTracking
 
         #region Shield Stats
 
-        public float OriginalMaxShieldHealth
-        {
-            get
-            {
-                float total = 0;
-                foreach (var stats in _gridStats.Values)
-                    total += stats.OriginalMaxShieldHealth;
-                return total;
-            }
-        }
+        public float OriginalMaxShieldHealth = -1;
         public float MaxShieldHealth
         {
             get
             {
-                float total = 0;
-                foreach (var stats in _gridStats.Values)
-                    total += stats.MaxShieldHealth;
-                return total;
+                var shieldController = ShieldApi.GetShieldBlock(Grid);
+                if (shieldController == null)
+                    return -1;
+                return ShieldApi.GetMaxHpCap(shieldController);
             }
         }
         public float CurrentShieldPercent
         {
             get
             {
-                float total = 0;
-                foreach (var stats in _gridStats.Values)
-                    total += stats.CurrentShieldPercent;
-                return total;
+                var shieldController = ShieldApi.GetShieldBlock(Grid);
+                if (shieldController == null)
+                    return -1;
+                return ShieldApi.GetShieldPercent(shieldController);
             }
         }
         public float CurrentShieldHeat
         {
             get
             {
-                float total = 0;
-                foreach (var stats in _gridStats.Values)
-                    total += stats.CurrentShieldHeat;
-                return total;
+                var shieldController = ShieldApi.GetShieldBlock(Grid);
+                if (shieldController == null)
+                    return -1;
+                return ShieldApi.GetShieldHeat(shieldController);
             }
         }
 
@@ -273,7 +269,16 @@ namespace ShipPoints.ShipTracking
         public ShipTracker(IMyCubeGrid grid, bool showOnHud = true)
         {
             Grid = grid;
-            _gridStats.Add(Grid, new GridStats(Grid));
+            //_gridStats.Add(Grid, new GridStats(Grid));
+
+            List<IMyCubeGrid> allAttachedGrids = new List<IMyCubeGrid>();
+            Grid.GetGridGroup(GridLinkTypeEnum.Physical).GetGrids(allAttachedGrids);
+            foreach (var attachedGrid in allAttachedGrids)
+            {
+                _gridStats.Add(attachedGrid, new GridStats(attachedGrid));
+                if (((MyCubeGrid)attachedGrid).BlocksCount > ((MyCubeGrid)Grid).BlocksCount) // Snap to the largest grid in the group.
+                    Grid = attachedGrid;
+            }
 
             Update();
 
@@ -315,8 +320,13 @@ namespace ShipPoints.ShipTracking
             if (Grid?.Physics == null) // TODO transfer to a different grid
                 return;
 
+            var shieldController = ShieldApi.GetShieldBlock(Grid);
+            if (shieldController == null)
+                OriginalMaxShieldHealth = -1;
+            if (OriginalMaxShieldHealth == -1 && !ShieldApi.IsFortified(shieldController))
+                OriginalMaxShieldHealth = MaxShieldHealth;
+
             // TODO: Update pilots
-            // TODO: Update shield block
             foreach (var gridStat in _gridStats.Values)
                 gridStat.Update();
         }
@@ -500,6 +510,93 @@ namespace ShipPoints.ShipTracking
                     costGroupName = "Defensive Generator";
                     costMultiplier = 50.00f;
                     break;
+            }
+        }
+
+        public static void SpecialBlockRename(ref string blockDisplayName, IMyCubeBlock block)
+        {
+            string subtype = block.BlockDefinition.SubtypeName;
+            // WHY CAN'T WE JUST USE THE LATEST C# VERSION THIS IS UGLY AS HECK
+
+            if (block is IMyGasGenerator)
+            {
+                blockDisplayName = "H2O2Generator";
+            }
+            else if (block is IMyGasTank)
+            {
+                blockDisplayName = "HydrogenTank";
+            }
+            else if (block is IMyMotorStator && subtype == "SubgridBase")
+            {
+                blockDisplayName = "Invincible Subgrid";
+            }
+            else if (block is IMyUpgradeModule)
+            {
+                switch (subtype)
+                {
+                    case "LargeEnhancer":
+                        blockDisplayName = "Shield Enhancer";
+                        break;
+                    case "EmitterL":
+                    case "EmitterLA":
+                        blockDisplayName = "Shield Emitter";
+                        break;
+                    case "LargeShieldModulator":
+                        blockDisplayName = "Shield Modulator";
+                        break;
+                    case "DSControlLarge":
+                    case "DSControlTable":
+                        blockDisplayName = "Shield Controller";
+                        break;
+                    case "AQD_LG_GyroBooster":
+                        blockDisplayName = "Gyro Booster";
+                        break;
+                    case "AQD_LG_GyroUpgrade":
+                        blockDisplayName = "Large Gyro Booster";
+                        break;
+                }
+            }
+            else if (block is IMyReactor)
+            {
+                switch (subtype)
+                {
+                    case "LargeBlockLargeGenerator":
+                    case "LargeBlockLargeGeneratorWarfare2":
+                        blockDisplayName = "Large Reactor";
+                        break;
+                    case "LargeBlockSmallGenerator":
+                    case "LargeBlockSmallGeneratorWarfare2":
+                        blockDisplayName = "Small Reactor";
+                        break;
+                }
+            }
+            else if (block is IMyGyro)
+            {
+                switch (subtype)
+                {
+                    case "LargeBlockGyro":
+                        blockDisplayName = "Small Gyro";
+                        break;
+                    case "AQD_LG_LargeGyro":
+                        blockDisplayName = "Large Gyro";
+                        break;
+                }
+            }
+            else if (block is IMyCameraBlock)
+            {
+                switch (subtype)
+                {
+                    case "MA_Buster_Camera":
+                        blockDisplayName = "Buster Camera";
+                        break;
+                    case "LargeCameraBlock":
+                        blockDisplayName = "Camera";
+                        break;
+                }
+            }
+            else if (block is IMyConveyor || block is IMyConveyorTube)
+            {
+                blockDisplayName = "Conveyor";
             }
         }
 
