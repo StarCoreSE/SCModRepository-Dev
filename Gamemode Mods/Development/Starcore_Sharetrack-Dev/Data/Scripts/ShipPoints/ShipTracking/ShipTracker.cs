@@ -10,6 +10,7 @@ using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRageMath;
+using VRageRender.Utils;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 
 namespace ShipPoints.ShipTracking
@@ -47,6 +48,18 @@ namespace ShipPoints.ShipTracking
                 return total;
             }
         }
+        public float GridIntegrity
+        {
+            get
+            {
+                float total = 0;
+                foreach (var stats in _gridStats.Values)
+                    total += stats.GridIntegrity;
+                return total;
+            }
+        }
+
+        public float OriginalGridIntegrity = 0;
         public int HeavyArmorCount
         {
             get
@@ -275,7 +288,9 @@ namespace ShipPoints.ShipTracking
             Grid.GetGridGroup(GridLinkTypeEnum.Physical).GetGrids(allAttachedGrids);
             foreach (var attachedGrid in allAttachedGrids)
             {
-                _gridStats.Add(attachedGrid, new GridStats(attachedGrid));
+                GridStats stats = new GridStats(attachedGrid);
+                _gridStats.Add(attachedGrid, stats);
+                OriginalGridIntegrity += stats.OriginalGridIntegrity;
                 if (((MyCubeGrid)attachedGrid).BlocksCount > ((MyCubeGrid)Grid).BlocksCount) // Snap to the largest grid in the group.
                     Grid = attachedGrid;
             }
@@ -335,13 +350,16 @@ namespace ShipPoints.ShipTracking
         {
             if (_gridStats.ContainsKey(grid))
                 return;
-            _gridStats.Add(grid, new GridStats(grid));
+            GridStats stats = new GridStats(grid);
+            _gridStats.Add(grid, stats);
+            OriginalGridIntegrity += stats.OriginalGridIntegrity;
         }
 
         private void OnGridRemove(IMyGridGroupData groupData, IMyCubeGrid grid, IMyGridGroupData newGroupData)
         {
             if (!_gridStats.ContainsKey(grid))
                 return;
+            OriginalGridIntegrity -= _gridStats[grid].OriginalGridIntegrity;
             _gridStats[grid].Close();
             _gridStats.Remove(grid);
         }

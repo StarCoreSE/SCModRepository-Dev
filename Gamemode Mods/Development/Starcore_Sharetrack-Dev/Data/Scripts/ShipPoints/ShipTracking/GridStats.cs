@@ -31,8 +31,12 @@ namespace ShipPoints.ShipTracking
             _slimBlocks = allSlimBlocks.ToHashSet();
 
             foreach (var block in _slimBlocks)
+            {
                 if (block.FatBlock != null)
                     _fatBlocks.Add(block.FatBlock);
+                GridIntegrity += block.Integrity;
+            }
+            OriginalGridIntegrity = GridIntegrity;
 
             Grid.OnBlockAdded += OnBlockAdd;
             Grid.OnBlockRemoved += OnBlockRemove;
@@ -86,6 +90,8 @@ namespace ShipPoints.ShipTracking
         public float TotalThrust { get; private set; } = 0;
         public float TotalTorque { get; private set; } = 0;
         public float TotalPower { get; private set; } = 0;
+        public float GridIntegrity { get; private set; } = 0;
+        public float OriginalGridIntegrity { get; private set; } = 0;
 
         // BattlePoint Stats
         public int BattlePoints { get; private set; } = 0;
@@ -116,6 +122,8 @@ namespace ShipPoints.ShipTracking
             if (block.FatBlock != null)
                 _fatBlocks.Add(block.FatBlock);
 
+            GridIntegrity += block.Integrity;
+
             NeedsUpdate = true;
         }
 
@@ -127,6 +135,8 @@ namespace ShipPoints.ShipTracking
             _slimBlocks.Remove(block);
             if (block.FatBlock != null)
                 _fatBlocks.Remove(block.FatBlock);
+
+            GridIntegrity -= block.Integrity;
 
             NeedsUpdate = true;
         }
