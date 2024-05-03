@@ -48,12 +48,12 @@ namespace ShipPoints.Commands
                 "Sets the current match timer to [arg1] in minutes.",
                 CommandMethods.SetMatchTime
             ),
-            ["setteams"] = new Command(
-                "ShareTrack.Match.Config",
-                "Assigns teams to specified. Minimum two, maximum infinite.",
-                CommandMethods.SetTeams
-            ),
-            ["setwintime"] = new Command(
+            //["setteams"] = new Command( // TODO this doesn't actually do anything.
+            //    "ShareTrack.Match.Config",
+            //    "Assigns teams to specified. Minimum two, maximum infinite.",
+            //    CommandMethods.SetTeams
+            //),
+            ["setwintime"] = new Command( // TODO this isn't synced.
                 "ShareTrack.Match.Config",
                 "Sets the current win time to [arg1] in minutes.",
                 CommandMethods.SetWinTime

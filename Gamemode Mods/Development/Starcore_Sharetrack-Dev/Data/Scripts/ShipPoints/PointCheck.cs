@@ -30,7 +30,7 @@ namespace ShipPoints
             Active
         }
 
-        public string[] TeamNames = { "RED", "BLU" };
+        public string[] TeamNames = { "RED", "BLU" }; // TODO this doesn't actually do anything.
         public static MatchStateEnum MatchState;
         public static bool AmTheCaptainNow;
 
@@ -38,7 +38,7 @@ namespace ShipPoints
         public static Dictionary<string, int> PointValues = new Dictionary<string, int>();
 
         private static readonly Dictionary<long, IMyPlayer> AllPlayers = new Dictionary<long, IMyPlayer>();
-        private static readonly List<IMyPlayer> ListPlayers = new List<IMyPlayer>();
+        private readonly List<IMyPlayer> _listPlayers = new List<IMyPlayer>();
 
         public static HudAPIv2.HUDMessage
             IntegretyMessage,
@@ -49,9 +49,6 @@ namespace ShipPoints
         public static ShipTracker.NametagSettings NametagViewState = ShipTracker.NametagSettings.PlayerName;
         public static int Decaytime = 180;
         public static int Delaytime = 60; //debug
-
-
-        private HashSet<IMyEntity> _managedEntities = new HashSet<IMyEntity>(); // TODO refactor
 
         private readonly Dictionary<string, int> _bp = new Dictionary<string, int>(); // TODO refactor info storage
 
@@ -121,7 +118,6 @@ namespace ShipPoints
             {
                 PointValues.Clear();
                 AllPlayers.Clear();
-                ListPlayers.Clear();
             }
 
             MyAPIGateway.Utilities.UnregisterMessageHandler(2546247, AddPointValues);
@@ -152,7 +148,7 @@ namespace ShipPoints
                 if (MatchTimer.I.Ticks % 60 == 0)
                 {
                     AllPlayers.Clear();
-                    MyAPIGateway.Multiplayer.Players.GetPlayers(ListPlayers, delegate (IMyPlayer p)
+                    MyAPIGateway.Multiplayer.Players.GetPlayers(_listPlayers, delegate (IMyPlayer p)
                     {
                         AllPlayers.Add(p.IdentityId, p);
                         return false;
@@ -163,27 +159,6 @@ namespace ShipPoints
             catch (Exception e)
             {
                 Log.Error($"Exception in UpdateAfterSimulation TryCatch 02: {e}");
-            }
-
-            try
-            {
-                if (MatchTimer.I.Ticks % 600 == 0) // TODO convert this to use cache
-                {
-                    _managedEntities.Clear();
-                    MyAPIGateway.Entities.GetEntities(_managedEntities, entity => entity is IMyCubeGrid);
-                    foreach (var entity in _managedEntities)
-                    {
-                        var grid = entity as MyCubeGrid;
-                        if (grid == null || !grid.HasSpecialBlocksWithSubtypeId("LargeFlightMovement", "RivalAIRemoteControlLarge"))
-                            continue;
-
-                        TrackingManager.I.TrackGrid(grid, false);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error($"Exception in UpdateAfterSimulation TryCatch 03: {e}");
             }
         }
 
@@ -540,8 +515,8 @@ namespace ShipPoints
 
         public static IMyPlayer GetOwner(long v)
         {
-            if (AllPlayers != null && AllPlayers.ContainsKey(v)) return AllPlayers[v];
-            return null;
+            IMyPlayer owner;
+            return AllPlayers.TryGetValue(v, out owner) ? owner : null;
         }
 
         public static IMyCubeGrid RaycastGridFromCamera()

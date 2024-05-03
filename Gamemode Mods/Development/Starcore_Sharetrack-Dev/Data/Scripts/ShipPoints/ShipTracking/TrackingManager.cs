@@ -14,6 +14,12 @@ namespace ShipPoints.ShipTracking
     {
         public static TrackingManager I;
 
+        private static readonly string[] AutoTrackSubtypes = new[]
+        {
+            "LargeFlightMovement",
+            "RivalAIRemoteControlLarge",
+        };
+
         #region Public Methods
 
         public static void Init()
@@ -174,6 +180,15 @@ namespace ShipPoints.ShipTracking
 
         private void OnEntityAdd(IMyEntity entity)
         {
+            // Autotrack grids with specified blocks.
+            var block = entity as IMyCubeBlock;
+            if (block != null &&
+                AutoTrackSubtypes.Contains(block.BlockDefinition.SubtypeName))
+            {
+                TrackGrid(block.CubeGrid, false);
+                return;
+            }
+
             var grid = entity as IMyCubeGrid;
             if (grid?.Physics == null)
                 return;
