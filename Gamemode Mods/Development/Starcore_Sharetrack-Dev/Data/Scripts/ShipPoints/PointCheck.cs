@@ -64,7 +64,7 @@ namespace ShipPoints
 
         // Get the sphere model based on the given cap color
 
-        private bool _doClientRequest = true;
+        private bool _awaitingTrackRequest = true;
         private bool _joinInit;
         private readonly Dictionary<string, double> _m = new Dictionary<string, double>();
         private readonly Dictionary<string, int> _mbp = new Dictionary<string, int>();
@@ -147,20 +147,17 @@ namespace ShipPoints
 
         public void UpdateAfterSimulation()
         {
-            // Send request to server for tracked grids. Why is it in here? so that integretymessage is exist.
-            if (_doClientRequest && !MyAPIGateway.Session.IsServer)
+            // Send request to server for tracked grids.
+            if (_awaitingTrackRequest && !MyAPIGateway.Session.IsServer)
             {
                 Static.MyNetwork.TransmitToServer(new SyncRequestPacket(), false);
-                _doClientRequest = false;
-            }
-
-            if (MatchTimer.I.Ticks >= 144000)
-            {
-                MatchTimer.I.Ticks = 0;
+                _awaitingTrackRequest = false;
             }
 
             try
             {
+                UpdateTrackingData();
+
                 if (!MyAPIGateway.Utilities.IsDedicated && Broadcaststat)
                 {
                     var tick100 = MatchTimer.I.Ticks % 100 == 0;
@@ -229,8 +226,7 @@ namespace ShipPoints
                         foreach (var entity in _managedEntities)
                         {
                             var grid = entity as MyCubeGrid;
-                            if ((grid == null || !grid.HaSpecialBlockCountsockWithSubtypeId("LargeFlightMovement")) &&
-                                !grid.HaSpecialBlockCountsockWithSubtypeId("RivalAIRemoteControlLarge"))
+                            if (grid == null || !grid.HasSpecialBlocksWithSubtypeId("LargeFlightMovement", "RivalAIRemoteControlLarge"))
                                 continue;
 
                             TrackingManager.I.TrackGrid(grid, false);
@@ -275,8 +271,6 @@ namespace ShipPoints
                 }
 
                 _hudPointsList?.UpdateDraw();
-
-                UpdateTrackingData();
             }
             catch (Exception e)
             {
@@ -638,13 +632,13 @@ namespace ShipPoints
 
     public static class GridExtensions
     {
-        public static bool HaSpecialBlockCountsockWithSubtypeId(this IMyCubeGrid grid, string subtypeId)
+        public static bool HasSpecialBlocksWithSubtypeId(this IMyCubeGrid grid, params string[] subtypeId)
         {
             List<IMySlimBlock> allBlocks = new List<IMySlimBlock>();
             grid?.GetBlocks(allBlocks, block => block.FatBlock != null);
 
             foreach (IMySlimBlock block in allBlocks)
-                if (block.BlockDefinition.Id.SubtypeName == subtypeId)
+                if (subtypeId.Contains(block.BlockDefinition.Id.SubtypeName))
                     return true;
 
             return false;
