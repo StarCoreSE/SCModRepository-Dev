@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Text;
+using DefenseShields;
 using Draygo.API;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
@@ -15,6 +16,9 @@ namespace ShipPoints.ShipTracking
 {
     public class ShipTracker
     {
+        private ShieldApi ShieldApi => PointCheck.I.ShieldApi;
+
+
         public IMyCubeGrid Grid { get; private set; }
         public IMyPlayer Owner => MyAPIGateway.Players.GetPlayerControllingEntity(Grid) ?? PointCheck.GetOwner(OwnerId);
         public long OwnerId => Grid?.BigOwners.Count > 0 ? Grid?.BigOwners[0] ?? -1 : -1;
@@ -191,44 +195,35 @@ namespace ShipPoints.ShipTracking
 
         #region Shield Stats
 
-        public float OriginalMaxShieldHealth
-        {
-            get
-            {
-                float total = 0;
-                foreach (var stats in _gridStats.Values)
-                    total += stats.OriginalMaxShieldHealth;
-                return total;
-            }
-        }
+        public float OriginalMaxShieldHealth = -1;
         public float MaxShieldHealth
         {
             get
             {
-                float total = 0;
-                foreach (var stats in _gridStats.Values)
-                    total += stats.MaxShieldHealth;
-                return total;
+                var shieldController = ShieldApi.GetShieldBlock(Grid);
+                if (shieldController == null)
+                    return -1;
+                return ShieldApi.GetMaxHpCap(shieldController);
             }
         }
         public float CurrentShieldPercent
         {
             get
             {
-                float total = 0;
-                foreach (var stats in _gridStats.Values)
-                    total += stats.CurrentShieldPercent;
-                return total;
+                var shieldController = ShieldApi.GetShieldBlock(Grid);
+                if (shieldController == null)
+                    return -1;
+                return ShieldApi.GetShieldPercent(shieldController);
             }
         }
         public float CurrentShieldHeat
         {
             get
             {
-                float total = 0;
-                foreach (var stats in _gridStats.Values)
-                    total += stats.CurrentShieldHeat;
-                return total;
+                var shieldController = ShieldApi.GetShieldBlock(Grid);
+                if (shieldController == null)
+                    return -1;
+                return ShieldApi.GetShieldHeat(shieldController);
             }
         }
 
@@ -274,7 +269,16 @@ namespace ShipPoints.ShipTracking
         public ShipTracker(IMyCubeGrid grid, bool showOnHud = true)
         {
             Grid = grid;
-            _gridStats.Add(Grid, new GridStats(Grid));
+            //_gridStats.Add(Grid, new GridStats(Grid));
+
+            List<IMyCubeGrid> allAttachedGrids = new List<IMyCubeGrid>();
+            Grid.GetGridGroup(GridLinkTypeEnum.Physical).GetGrids(allAttachedGrids);
+            foreach (var attachedGrid in allAttachedGrids)
+            {
+                _gridStats.Add(attachedGrid, new GridStats(attachedGrid));
+                if (((MyCubeGrid)attachedGrid).BlocksCount > ((MyCubeGrid)Grid).BlocksCount) // Snap to the largest grid in the group.
+                    Grid = attachedGrid;
+            }
 
             Update();
 
@@ -316,8 +320,13 @@ namespace ShipPoints.ShipTracking
             if (Grid?.Physics == null) // TODO transfer to a different grid
                 return;
 
+            var shieldController = ShieldApi.GetShieldBlock(Grid);
+            if (shieldController == null)
+                OriginalMaxShieldHealth = -1;
+            if (OriginalMaxShieldHealth == -1 && !ShieldApi.IsFortified(shieldController))
+                OriginalMaxShieldHealth = MaxShieldHealth;
+
             // TODO: Update pilots
-            // TODO: Update shield block
             foreach (var gridStat in _gridStats.Values)
                 gridStat.Update();
         }

@@ -55,7 +55,13 @@ namespace ShipPoints.ShipTracking
         {
             if (TrackedGrids.ContainsKey(grid))
                 return;
-            Log.Info("Send track request!");
+
+            // Don't allow tracking grids that are already tracked in the group.
+            List<IMyCubeGrid> allAttachedGrids = new List<IMyCubeGrid>();
+            grid.GetGridGroup(GridLinkTypeEnum.Physical).GetGrids(allAttachedGrids);
+            foreach (var attachedGrid in allAttachedGrids)
+                if (TrackedGrids.ContainsKey(attachedGrid))
+                    return;
 
             ShipTracker tracker = new ShipTracker(grid);
             TrackedGrids.Add(grid, tracker);
@@ -87,11 +93,14 @@ namespace ShipPoints.ShipTracking
 
         public void UntrackGrid(IMyCubeGrid grid, bool share = true)
         {
-            if (!TrackedGrids.ContainsKey(grid))
-                return;
-
-            TrackedGrids[grid].DisposeHud();
-            TrackedGrids.Remove(grid);
+            // Untrack all grids in group.
+            List<IMyCubeGrid> allAttachedGrids = new List<IMyCubeGrid>();
+            grid.GetGridGroup(GridLinkTypeEnum.Physical).GetGrids(allAttachedGrids);
+            foreach (var attachedGrid in allAttachedGrids.Where(attachedGrid => TrackedGrids.ContainsKey(attachedGrid)))
+            {
+                TrackedGrids[attachedGrid].DisposeHud();
+                TrackedGrids.Remove(attachedGrid);
+            }
 
             if (!share)
                 return;
@@ -117,7 +126,11 @@ namespace ShipPoints.ShipTracking
 
         public bool IsGridTracked(IMyCubeGrid grid)
         {
-            return TrackedGrids.ContainsKey(grid);
+            List<IMyCubeGrid> allAttachedGrids = new List<IMyCubeGrid>();
+            grid.GetGridGroup(GridLinkTypeEnum.Physical).GetGrids(allAttachedGrids);
+            foreach (var attachedGrid in allAttachedGrids.Where(attachedGrid => TrackedGrids.ContainsKey(attachedGrid)))
+                return true;
+            return false;
         }
 
         public void ServerDoSync()

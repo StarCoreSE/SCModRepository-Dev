@@ -50,8 +50,6 @@ namespace ShipPoints.ShipTracking
 
         public void Update()
         {
-            UpdateShieldStats();
-
             if (!NeedsUpdate)
                 return;
 
@@ -193,25 +191,6 @@ namespace ShipPoints.ShipTracking
                 if (slimBlock.BlockDefinition.Id.SubtypeName.Contains("Heavy"))
                     HeavyArmorCount++;
             }
-        }
-
-        public void UpdateShieldStats()
-        {
-            var shieldController = ShieldApi.GetShieldBlock(Grid);
-            if (shieldController == null)
-            {
-                OriginalMaxShieldHealth = -1;
-                MaxShieldHealth = -1;
-                CurrentShieldPercent = -1;
-                CurrentShieldHeat = -1;
-                return;
-            }
-
-            MaxShieldHealth = ShieldApi.GetMaxHpCap(shieldController);
-            if (OriginalMaxShieldHealth == -1 && !ShieldApi.IsFortified(shieldController))
-                OriginalMaxShieldHealth = MaxShieldHealth;
-            CurrentShieldPercent = ShieldApi.GetShieldPercent(shieldController);
-            CurrentShieldHeat = ShieldApi.GetShieldHeat(shieldController);
         }
 
         private void UpdateWeaponStats()
