@@ -186,8 +186,7 @@ namespace ShipPoints.ShipTracking
                 if (slimBlock.FatBlock != null)
                     continue;
 
-                string subtype = slimBlock.BlockDefinition.Id.SubtypeName.ToLower();
-                if (subtype.Contains("heavy"))
+                if (slimBlock.BlockDefinition.Id.SubtypeName.Contains("Heavy"))
                     HeavyArmorCount++;
             }
         }
@@ -237,7 +236,7 @@ namespace ShipPoints.ShipTracking
         private void CalculateCost(IMyCubeBlock block)
         {
             int blockPoints;
-            string blockDisplayName = block.DefinitionDisplayNameText;
+            string blockDisplayName = GetDDT(block);
             if (!PointCheck.PointValues.TryGetValue(block.BlockDefinition.SubtypeName, out blockPoints))
                 return;
 
@@ -247,10 +246,10 @@ namespace ShipPoints.ShipTracking
             if (!BlockCounts.ContainsKey(blockDisplayName))
                 BlockCounts.Add(blockDisplayName, 0);
 
-            int thiSpecialBlockCountsockCount = BlockCounts[blockDisplayName]++;
+            int thisSpecialBlocksCount = BlockCounts[blockDisplayName]++;
 
-            if (thisClimbingCostMult > 0 && thiSpecialBlockCountsockCount > 1)
-                blockPoints += (int)(blockPoints * thiSpecialBlockCountsockCount * thisClimbingCostMult);
+            if (thisClimbingCostMult > 0 && thisSpecialBlocksCount > 1)
+                blockPoints += (int)(blockPoints * thisSpecialBlocksCount * thisClimbingCostMult);
 
             if (block is IMyThrust || block is IMyGyro)
                 MovementPoints += blockPoints;
@@ -267,6 +266,11 @@ namespace ShipPoints.ShipTracking
             }
 
             BattlePoints += blockPoints;
+        }
+
+        private string GetDDT(IMyCubeBlock block)
+        {
+            return block.DefinitionDisplayNameText;
         }
 
         #endregion

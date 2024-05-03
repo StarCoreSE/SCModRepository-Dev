@@ -19,13 +19,13 @@ namespace ShipPoints.ShipTracking
         public long OwnerId => Grid?.BigOwners.Count > 0 ? Grid?.BigOwners[0] ?? -1 : -1;
 
 
-        public string GridName => Grid.DisplayName;
+        public string GridName => Grid?.DisplayName;
         public float Mass => ((MyCubeGrid)Grid).GetCurrentMass();
         public Vector3 Position => Grid.Physics.CenterOfMassWorld;
         public IMyFaction OwnerFaction => MyAPIGateway.Session?.Factions?.TryGetPlayerFaction(OwnerId);
         public string FactionName => OwnerFaction?.Name ?? "None";
         public Vector3 FactionColor => ColorMaskToRgb(OwnerFaction?.CustomColor ?? Vector3.Zero);
-        public string OwnerName => Owner?.DisplayName ?? "Unowned";
+        public string OwnerName => Owner?.DisplayName ?? GridName;
 
         #region GridStats Pointers
 
@@ -145,7 +145,7 @@ namespace ShipPoints.ShipTracking
             }
         }
 
-        public float OffensivePointsRatio => BattlePoints == 0 ? 0 : OffensivePoints / BattlePoints;
+        public float OffensivePointsRatio => BattlePoints == 0 ? 0 : (float) OffensivePoints / BattlePoints;
         public int PowerPoints
         {
             get
@@ -156,7 +156,7 @@ namespace ShipPoints.ShipTracking
                 return total;
             }
         }
-        public float PowerPointsRatio => BattlePoints == 0 ? 0 : PowerPoints / BattlePoints;
+        public float PowerPointsRatio => BattlePoints == 0 ? 0 : (float)PowerPoints / BattlePoints;
 
         public int MovementPoints
         {
@@ -168,7 +168,7 @@ namespace ShipPoints.ShipTracking
                 return total;
             }
         }
-        public float MovementPointsRatio => BattlePoints == 0 ? 0 : MovementPoints / BattlePoints;
+        public float MovementPointsRatio => BattlePoints == 0 ? 0 : (float)MovementPoints / BattlePoints;
 
         public int PointDefensePoints
         {
@@ -180,7 +180,7 @@ namespace ShipPoints.ShipTracking
                 return total;
             }
         }
-        public float PointDefensePointsRatio => BattlePoints == 0 ? 0 : PointDefensePoints / BattlePoints;
+        public float PointDefensePointsRatio => BattlePoints == 0 ? 0 : (float) PointDefensePoints / BattlePoints;
 
 
         public int RemainingPoints => BattlePoints - OffensivePoints - PowerPoints - MovementPoints - PointDefensePoints;

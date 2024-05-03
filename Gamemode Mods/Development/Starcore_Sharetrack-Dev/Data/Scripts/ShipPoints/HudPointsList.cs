@@ -153,10 +153,10 @@ namespace ShipPoints
 
             var totalShieldString = "None";
 
-            if (shipTracker.CurrentShieldPercent > 100)
-                totalShieldString = $"{shipTracker.CurrentShieldPercent / 100f:F2} M";
-            else if (shipTracker.CurrentShieldPercent > 1 && shipTracker.CurrentShieldPercent < 100)
-                totalShieldString = $"{shipTracker.CurrentShieldPercent:F0}0 K";
+            if (shipTracker.MaxShieldHealth > 100)
+                totalShieldString = $"{shipTracker.MaxShieldHealth / 100f:F2} M";
+            else if (shipTracker.MaxShieldHealth > 1 && shipTracker.MaxShieldHealth < 100)
+                totalShieldString = $"{shipTracker.MaxShieldHealth:F0}0 K";
 
             var gunTextBuilder = new StringBuilder();
             foreach (var x in shipTracker.WeaponCounts.Keys)
@@ -242,12 +242,12 @@ namespace ShipPoints
             sb.AppendFormat("<color=Green>Battle Points<color=White>: {0}\n", shipTracker.BattlePoints);
             sb.AppendFormat(
                 "<color=Orange>[<color=Red> {0}% <color=Orange>| <color=Green>{1}% <color=Orange>| <color=DeepSkyBlue>{2}% <color=Orange>| <color=LightGray>{3}% <color=Orange>]\n",
-                shipTracker.OffensivePointsRatio, shipTracker.PowerPointsRatio, shipTracker.MovementPointsRatio, shipTracker.RemainingPointsRatio);
+                Math.Round(shipTracker.OffensivePointsRatio*100f), Math.Round(shipTracker.PowerPointsRatio*100f), Math.Round(shipTracker.MovementPointsRatio*100f), Math.Round(shipTracker.RemainingPointsRatio*100f));
             sb.Append(
-                $"<color=Green>PD Investment<color=White>: <color=Orange>( <color=white>{shipTracker.PointDefensePointsRatio}% <color=Orange>|<color=Crimson> {(shipTracker.OffensivePoints == 0 ? 0 : shipTracker.PointDefensePoints / shipTracker.OffensivePoints)}%<color=Orange> )\n");
+                $"<color=Green>PD Investment<color=White>: <color=Orange>( <color=white>{shipTracker.PointDefensePointsRatio*100:N0}% <color=Orange>|<color=Crimson> {(shipTracker.OffensivePoints == 0 ? 0 : (float) shipTracker.PointDefensePoints / shipTracker.OffensivePoints)*100f:N0}%<color=Orange> )\n");
             sb.AppendFormat(
                 "<color=Green>Shield Max HP<color=White>: {0} <color=Orange>(<color=White>{1}%<color=Orange>)\n",
-                totalShieldString, (int)shipTracker.MaxShieldHealth);
+                totalShieldString, shipTracker.CurrentShieldPercent);
             sb.AppendFormat("<color=Green>Thrust<color=White>: {0}N\n", thrustString);
             sb.AppendFormat("<color=Green>Gyro<color=White>: {0}N\n", gyroString);
             sb.AppendFormat("<color=Green>Power<color=White>: {0}\n", pwr);
