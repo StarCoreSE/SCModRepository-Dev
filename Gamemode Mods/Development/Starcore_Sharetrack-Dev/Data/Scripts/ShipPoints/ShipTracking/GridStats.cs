@@ -169,8 +169,12 @@ namespace ShipPoints.ShipTracking
                 else if (!WcApi.HasCoreWeapon((MyEntity)block))
                 {
                     string blockDisplayName = block.DefinitionDisplayNameText;
+                    if (blockDisplayName.Contains("Armor")) // This is a bit stupid. TODO find a better way to sort out armor blocks.
+                        continue;
+
                     float ignored = 0;
                     ShipTracker.ClimbingCostRename(ref blockDisplayName, ref ignored);
+                    ShipTracker.SpecialBlockRename(ref blockDisplayName, block);
                     if (!SpecialBlockCounts.ContainsKey(blockDisplayName))
                         SpecialBlockCounts.Add(blockDisplayName, 0);
                     SpecialBlockCounts[blockDisplayName]++;

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Text;
 using Draygo.API;
 using Sandbox.Game.Entities;
@@ -500,6 +501,93 @@ namespace ShipPoints.ShipTracking
                     costGroupName = "Defensive Generator";
                     costMultiplier = 50.00f;
                     break;
+            }
+        }
+
+        public static void SpecialBlockRename(ref string blockDisplayName, IMyCubeBlock block)
+        {
+            string subtype = block.BlockDefinition.SubtypeName;
+            // WHY CAN'T WE JUST USE THE LATEST C# VERSION THIS IS UGLY AS HECK
+
+            if (block is IMyGasGenerator)
+            {
+                blockDisplayName = "H2O2Generator";
+            }
+            else if (block is IMyGasTank)
+            {
+                blockDisplayName = "HydrogenTank";
+            }
+            else if (block is IMyMotorStator && subtype == "SubgridBase")
+            {
+                blockDisplayName = "Invincible Subgrid";
+            }
+            else if (block is IMyUpgradeModule)
+            {
+                switch (subtype)
+                {
+                    case "LargeEnhancer":
+                        blockDisplayName = "Shield Enhancer";
+                        break;
+                    case "EmitterL":
+                    case "EmitterLA":
+                        blockDisplayName = "Shield Emitter";
+                        break;
+                    case "LargeShieldModulator":
+                        blockDisplayName = "Shield Modulator";
+                        break;
+                    case "DSControlLarge":
+                    case "DSControlTable":
+                        blockDisplayName = "Shield Controller";
+                        break;
+                    case "AQD_LG_GyroBooster":
+                        blockDisplayName = "Gyro Booster";
+                        break;
+                    case "AQD_LG_GyroUpgrade":
+                        blockDisplayName = "Large Gyro Booster";
+                        break;
+                }
+            }
+            else if (block is IMyReactor)
+            {
+                switch (subtype)
+                {
+                    case "LargeBlockLargeGenerator":
+                    case "LargeBlockLargeGeneratorWarfare2":
+                        blockDisplayName = "Large Reactor";
+                        break;
+                    case "LargeBlockSmallGenerator":
+                    case "LargeBlockSmallGeneratorWarfare2":
+                        blockDisplayName = "Small Reactor";
+                        break;
+                }
+            }
+            else if (block is IMyGyro)
+            {
+                switch (subtype)
+                {
+                    case "LargeBlockGyro":
+                        blockDisplayName = "Small Gyro";
+                        break;
+                    case "AQD_LG_LargeGyro":
+                        blockDisplayName = "Large Gyro";
+                        break;
+                }
+            }
+            else if (block is IMyCameraBlock)
+            {
+                switch (subtype)
+                {
+                    case "MA_Buster_Camera":
+                        blockDisplayName = "Buster Camera";
+                        break;
+                    case "LargeCameraBlock":
+                        blockDisplayName = "Camera";
+                        break;
+                }
+            }
+            else if (block is IMyConveyor || block is IMyConveyorTube)
+            {
+                blockDisplayName = "Conveyor";
             }
         }
 
