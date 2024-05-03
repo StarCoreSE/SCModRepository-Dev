@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using ShipPoints.HeartNetworking;
 using ShipPoints.HeartNetworking.Custom;
@@ -53,7 +54,7 @@ namespace ShipPoints.ShipTracking
 
         public void TrackGrid(IMyCubeGrid grid, bool share = true)
         {
-            if (TrackedGrids.ContainsKey(grid))
+            if (!(((MyCubeGrid)grid)?.DestructibleBlocks ?? false) || TrackedGrids.ContainsKey(grid)) // Ignore invulnerable and already tracked grids
                 return;
 
             // Don't allow tracking grids that are already tracked in the group.

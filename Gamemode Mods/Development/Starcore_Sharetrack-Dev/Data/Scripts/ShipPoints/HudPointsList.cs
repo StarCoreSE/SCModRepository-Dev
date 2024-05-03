@@ -100,12 +100,8 @@ namespace ShipPoints
             {
                 return PointCheck.RaycastGridFromCamera();
             }
-            else if (cockpit.CubeGrid?.Physics != null) // user is in cockpit
-            {
-                return cockpit.CubeGrid;
-            }
-
-            return null;
+            return cockpit.CubeGrid?.Physics != null ? // user is in cockpit
+                cockpit.CubeGrid : null;
         }
 
         private void ShiftTHandling()
