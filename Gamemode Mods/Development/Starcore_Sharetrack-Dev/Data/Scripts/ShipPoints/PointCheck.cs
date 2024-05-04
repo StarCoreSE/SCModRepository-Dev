@@ -468,7 +468,8 @@ namespace ShipPoints
             var shieldPercent = (int)tracker.CurrentShieldPercent;
             var shieldColor = shieldPercent <= 0
                 ? "red"
-                : $"{255},{255 - tracker.CurrentShieldHeat * 20},{255 - tracker.CurrentShieldHeat * 20}";
+                : $"{255},{255 - tracker.CurrentShieldHeat * 2.5f},{255 - tracker.CurrentShieldHeat * 2.5f}";
+            MyAPIGateway.Utilities.ShowNotification(shieldColor + " | " + tracker.CurrentShieldHeat);
             var weaponColor = g == 0 ? "red" : "orange";
             var functionalColor = tracker.IsFunctional ? "white" : "red";
             return
