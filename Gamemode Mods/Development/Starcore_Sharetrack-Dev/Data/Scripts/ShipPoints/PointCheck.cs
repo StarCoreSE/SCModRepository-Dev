@@ -352,7 +352,6 @@ namespace ShipPoints
                     NametagViewState++;
                     if (NametagViewState > (ShipTracker.NametagSettings) 3)
                         NametagViewState = 0;
-                    PointCheckHelpers.NameplateVisible = NametagViewState != 0;
                     MyAPIGateway.Utilities.ShowNotification(
                         "ShipTracker: Nameplate visibility set to " + NametagViewState);
                 }
@@ -469,7 +468,6 @@ namespace ShipPoints
             var shieldColor = shieldPercent <= 0
                 ? "red"
                 : $"{255},{255 - tracker.CurrentShieldHeat * 2.5f},{255 - tracker.CurrentShieldHeat * 2.5f}";
-            MyAPIGateway.Utilities.ShowNotification(shieldColor + " | " + tracker.CurrentShieldHeat);
             var weaponColor = g == 0 ? "red" : "orange";
             var functionalColor = tracker.IsFunctional ? "white" : "red";
             return

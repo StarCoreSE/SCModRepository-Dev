@@ -282,7 +282,6 @@ namespace ShipPoints.ShipTracking
         public ShipTracker(IMyCubeGrid grid, bool showOnHud = true)
         {
             Grid = grid;
-            //_gridStats.Add(Grid, new GridStats(Grid));
 
             List<IMyCubeGrid> allAttachedGrids = new List<IMyCubeGrid>();
             Grid.GetGridGroup(GridLinkTypeEnum.Physical).GetGrids(allAttachedGrids);
@@ -489,7 +488,7 @@ namespace ShipPoints.ShipTracking
                                  30 / Math.Max(maxAngle, angle * angle * angle);
                 _nametag.Origin = new Vector2D(targetHudPos.X,
                     targetHudPos.Y + MathHelper.Clamp(-0.000125 * distance + 0.25, 0.05, 0.25));
-                _nametag.Visible = PointCheckHelpers.NameplateVisible && visible;
+                _nametag.Visible = visible && PointCheck.NametagViewState != NametagSettings.None;
 
                 _nametag.Message.Clear();
 
