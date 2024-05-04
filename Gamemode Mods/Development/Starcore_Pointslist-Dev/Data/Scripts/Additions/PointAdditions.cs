@@ -318,10 +318,11 @@ namespace ShipPoints
 
 				OffroadWheel1x1@35000;
 				OffroadWheel3x3@35000;
-				OffroadWheel5x5@35000;
+				OffroadWheel2x2@35000;
 				OffroadWheel5x5@35000;
 				Wheel5x5@35000;
 				Wheel3x3@35000;
+				Wheel2x2@35000;
 				Wheel1x1@35000;
 
 				K_SA_Gauss_AMSIIC@350;
@@ -512,27 +513,20 @@ Cat_Darth40kWeapons@20;
 				NID_Hivedrone@350;
 				NID_BioplasmaHivedrone@400;
 				NID_Leap@50;
-
-				MonoWhip@800;
-				LightLightningArc@250;
-				LightningArc@450;
-				FluxArcLarge@100;
-				
+				LightParticleWhip@200;
+				ParticleWhip@400;
 				NovaCannon@800;
+				FixedLance@350;
 				MacroCannon@200;
 				HeavyMacroCannon@450;
-				MacroTurret@300;
-				MacroHeavyTurret@450;
-				MacroLightTurret@150;
-    			LanceBattery@400;
+    				LanceBattery@400;
 				LanceLightBattery@280;
 				LanceHeavyBattery@650;
-				FixedLance@350;
-				GothicTorp@150;
+				MacroTurret@300;
+				MacroLightTurret@150;
+				MacroHeavyTurret@450;
+				GothicTorp@300;
 				AegisFlakTurret@120;
-				
-
-
 
 				
 				65_Launcher_FixedMount@350;
@@ -563,7 +557,7 @@ Cat_StarcoreUlitity@21;
 				DETPAK@1;
 					DETPAK_3x1@1;
 						DETPAK_1x1@1;
-				MagnaPulse_Gen@400;
+				AMP_HealGenerator@400;
 				 CapacitorLarge@400;
 				MADAR@0;
 				 SC_Radome@10;
@@ -617,12 +611,11 @@ Cat_BadModder@22;
 				  VindicatorKineticLance@750;
 
 				 Fixed_Rockets@250;
-				JN_175Fixed@1350; 
+				JN_175Fixed@600; 
 				 Thagomizer@635; 
 					 Thagomizer_Flipped@635; 
 						 Thagomizer_Angled@635; 
 							 Thagomizer_Angled_Flipped@635; 
-
 
 Cat_Strikecraft@23;
 				HeavyFighterBay@230; 
@@ -688,7 +681,7 @@ Cat_Fletcher_Subtypes@23;
                 406alternate@400;
                 Mk25Rangefinder@10;
                 6InchTriple@200;
-                20InchTwin@600;	
+                20InchTwin@600;
 
 
 
