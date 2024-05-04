@@ -21,16 +21,16 @@ namespace ShipPoints
             ["LargeLargeBlockUpgrade"] = 100,
             ["LargeBlockLargeGenerator"] = 300,
             ["LargeBlockLargeGeneratorWarfare2"] = 300,
-             
-             
+
+
             ["SmallHydrogenEngine"] = 1,
             ["SmallBlockLargeGenerator"] = 15,
             ["SmallBlockSmallGenerator"] = 1,
             ["SmallBlockBatteryBlock"] = 15,
             ["SmallBlockBatteryBlock"] = 4,
             ["SmallBlockSmallBatteryBlock"] = 1,
-             
-             
+
+
             ["DSControlTable"] = 50,
             ["DSControlLarge"] = 50,
             ["EmitterL"] = 50,
@@ -42,14 +42,14 @@ namespace ShipPoints
             ["EmitterS"] = 50,
             ["EmitterSA"] = 50,
             ["SmallEnhancer"] = 50,
-            
-            
+
+
             ["DampeningEnhancer_x2_Large"] = 100,
-            
+
             ["LargeDecoy"] = 4,
             ["SmallDecoy"] = 10,
             ["LargeDecoy_MetalFoam"] = 50,
-            
+
             ["LargeStator"] = 5,
             ["LargeAdvancedStator"] = 5,
             ["LargeHinge"] = 5,
