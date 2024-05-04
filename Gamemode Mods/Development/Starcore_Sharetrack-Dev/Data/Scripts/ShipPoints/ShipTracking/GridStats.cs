@@ -181,7 +181,7 @@ namespace ShipPoints.ShipTracking
                         continue;
 
                     float ignored = 0;
-                    ShipTracker.ClimbingCostRename(ref blockDisplayName, ref ignored);
+                    PointCheck.ClimbingCostRename(ref blockDisplayName, ref ignored);
                     ShipTracker.SpecialBlockRename(ref blockDisplayName, block);
                     if (!SpecialBlockCounts.ContainsKey(blockDisplayName))
                         SpecialBlockCounts.Add(blockDisplayName, 0);
@@ -217,7 +217,7 @@ namespace ShipPoints.ShipTracking
 
                 float thisClimbingCostMult = 0;
 
-                ShipTracker.ClimbingCostRename(ref weaponDisplayName, ref thisClimbingCostMult);
+                PointCheck.ClimbingCostRename(ref weaponDisplayName, ref thisClimbingCostMult);
 
                 if (!WeaponCounts.ContainsKey(weaponDisplayName))
                     WeaponCounts.Add(weaponDisplayName, 0);
@@ -234,7 +234,7 @@ namespace ShipPoints.ShipTracking
                 return;
 
             float thisClimbingCostMult = 0;
-            ShipTracker.ClimbingCostRename(ref blockDisplayName, ref thisClimbingCostMult);
+            PointCheck.ClimbingCostRename(ref blockDisplayName, ref thisClimbingCostMult);
 
             if (!BlockCounts.ContainsKey(blockDisplayName))
                 BlockCounts.Add(blockDisplayName, 0);

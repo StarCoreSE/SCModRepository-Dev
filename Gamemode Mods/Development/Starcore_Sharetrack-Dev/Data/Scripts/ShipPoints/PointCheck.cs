@@ -17,6 +17,7 @@ using VRage.ModAPI;
 using VRageMath;
 using ShipPoints.ShipTracking;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
+using VRage;
 
 namespace ShipPoints
 {
@@ -36,6 +37,8 @@ namespace ShipPoints
 
 
         public static Dictionary<string, int> PointValues = new Dictionary<string, int>();
+        private Func<string, MyTuple<string, float>> _climbingCostFunction = null;
+
 
         private static readonly Dictionary<long, IMyPlayer> AllPlayers = new Dictionary<long, IMyPlayer>();
         private readonly List<IMyPlayer> _listPlayers = new List<IMyPlayer>();
@@ -47,7 +50,6 @@ namespace ShipPoints
             Problemmessage;
 
         public static ShipTracker.NametagSettings NametagViewState = ShipTracker.NametagSettings.PlayerName;
-        public static int Decaytime = 180;
         public static int Delaytime = 60; //debug
 
         private readonly Dictionary<string, int> _bp = new Dictionary<string, int>(); // TODO refactor info storage
@@ -85,7 +87,7 @@ namespace ShipPoints
                 "Aim at a grid and press Shift+T to show stats, " +
                 "Shift+M to track a grid, Shift+J to cycle nametag style. ");
 
-            MyAPIGateway.Utilities.RegisterMessageHandler(2546247, AddPointValues);
+            MyAPIGateway.Utilities.RegisterMessageHandler(2546247, ParsePointsDict);
 
             // Check if the current instance is not a dedicated server
             if (!MyAPIGateway.Utilities.IsDedicated)
@@ -120,7 +122,7 @@ namespace ShipPoints
                 AllPlayers.Clear();
             }
 
-            MyAPIGateway.Utilities.UnregisterMessageHandler(2546247, AddPointValues);
+            MyAPIGateway.Utilities.UnregisterMessageHandler(2546247, ParsePointsDict);
 
             I = null;
         }
@@ -210,7 +212,41 @@ namespace ShipPoints
                 HeartNetwork.I.SendToEveryone(new ProblemReportPacket(false));
         }
 
+        public static void ClimbingCostRename(ref string blockDisplayName, ref float climbingCostMultiplier)
+        {
+            if (I._climbingCostFunction == null)
+                return;
+            MyTuple<string, float> results = I._climbingCostFunction.Invoke(blockDisplayName);
+
+            blockDisplayName = results.Item1;
+            climbingCostMultiplier = results.Item2;
+        }
+
         #endregion
+
+        private void ParsePointsDict(object message)
+        {
+            try
+            {
+                var dict = message as Dictionary<string, int>;
+                if (dict != null)
+                {
+                    PointValues = dict;
+                    return;
+                }
+
+                var climbCostFunc = message as Func<string, MyTuple<string, float>>;
+                if (climbCostFunc != null)
+                {
+                    _climbingCostFunction = climbCostFunc;
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+            }
+        }
 
         public static void BeginMatch()
         {
@@ -244,54 +280,6 @@ namespace ShipPoints
 
             if (MyAPIGateway.Session.IsServer)
                 HeartNetwork.I.SendToEveryone(new GameStatePacket(I));
-        }
-
-        public static void AddPointValues(object obj)
-        {
-            // Deserialize the byte array (obj) into a string (var)
-            var var = MyAPIGateway.Utilities.SerializeFromBinary<string>((byte[])obj);
-
-            // Check if the deserialization was successful
-            if (var == null)
-                return;
-
-            // Split the string into an array of substrings using the ';' delimiter
-            var split = var.Split(';');
-
-            // Iterate through each substring (s) in the split array
-            foreach (var s in split)
-            {
-                // Split the substring (s) into an array of parts using the '@' delimiter
-                var parts = s.Split('@');
-                int value;
-
-                // Check if there are exactly 2 parts and if the second part is a valid integer (value)
-                if (parts.Length != 2 || !int.TryParse(parts[1], out value))
-                    continue;
-
-                // Trim the first part (name) and remove any extra whitespaces
-                var name = parts[0].Trim();
-                var lsIndex = name.IndexOf("{LS}");
-
-                // Check if the name contains "{LS}"
-                if (lsIndex != -1)
-                {
-                    // Replace "{LS}" with "Large" and update the PointValues SendingDictionary
-                    var largeName = name.Substring(0, lsIndex) + "Large" +
-                                    name.Substring(lsIndex + "{LS}".Length);
-                    PointValues[largeName] = value;
-
-                    // Replace "{LS}" with "Small" and update the PointValues SendingDictionary
-                    var smallName = name.Substring(0, lsIndex) + "Small" +
-                                    name.Substring(lsIndex + "{LS}".Length);
-                    PointValues[smallName] = value;
-                }
-                else
-                {
-                    // Update the PointValues SendingDictionary directly
-                    PointValues[name] = value;
-                }
-            }
         }
 
         private void HudRegistered()

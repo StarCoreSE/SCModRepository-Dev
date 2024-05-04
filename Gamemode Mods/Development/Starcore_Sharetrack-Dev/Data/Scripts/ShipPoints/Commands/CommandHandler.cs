@@ -63,11 +63,6 @@ namespace ShipPoints.Commands
                 "Sets the current delay time to [arg1] in minutes.",
                 CommandMethods.SetDelay
             ),
-            ["setdecay"] = new Command(
-                "ShareTrack.Match.Config",
-                "Sets the current decay time to [arg1] in seconds.",
-                CommandMethods.SetDecay
-            ),
             #endregion
 
             #region Util Commands
