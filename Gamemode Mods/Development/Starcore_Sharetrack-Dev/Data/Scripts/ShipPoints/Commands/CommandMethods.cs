@@ -137,26 +137,6 @@ namespace ShipPoints.Commands
             }
         }
 
-        public static void SetDecay(string[] args)
-        {
-            if (!PointCheck.AmTheCaptainNow)
-            {
-                MyAPIGateway.Utilities.ShowNotification("You aren't the captain! Run \"/st takeover\" to take over the match.");
-                return;
-            }
-
-            try
-            {
-                PointCheck.Decaytime = int.Parse(args[1]);
-                MyAPIGateway.Utilities.ShowNotification("Decay time changed to " + PointCheck.Decaytime + " seconds.");
-                PointCheck.Decaytime *= 60;
-            }
-            catch (Exception)
-            {
-                MyAPIGateway.Utilities.ShowNotification("Decay time not changed, try /st setdecay xxx (in seconds)");
-            }
-        }
-
         #endregion
 
         #region Utility Commands
