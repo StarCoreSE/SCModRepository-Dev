@@ -16,7 +16,9 @@ while read path; do
 done < allModDatas.txt
 
 delim=""
+joined=""
 for item in "${MODIDARR[@]}"; do
-  printf "%s" "$delim$item"
+  joined="$joined$delim$item"
   delim=","
 done
+echo "$joined"
