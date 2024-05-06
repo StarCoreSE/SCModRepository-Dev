@@ -5,42 +5,37 @@ using System.Text;
 using CoreSystems.Api;
 using DefenseShields;
 using Draygo.API;
-using Math0424.ShipPoints;
 using RelativeTopSpeed;
-using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
-using SENetworkAPI;
-using ShipPoints.Data.Scripts.ShipPoints.Networking;
+using ShipPoints.HeartNetworking;
+using ShipPoints.HeartNetworking.Custom;
 using ShipPoints.MatchTiming;
+using ShipPoints.ShipTracking;
+using VRage;
 using VRage.Game.ModAPI;
 using VRage.Input;
-using VRage.ModAPI;
-using VRage.Utils;
 using VRageMath;
-using ShipPoints.ShipTracking;
-using static Math0424.Networking.MyNetworkHandler;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 
 namespace ShipPoints
 {
     public class PointCheck
     {
-        public static PointCheck I;
-
-        public enum ProblemReportState
+        public enum MatchStateEnum
         {
-            ThisIsFine,
-            ItsOver
+            Stopped,
+            Active
         }
 
-        public static NetSync<int> ServerMatchState;
-        public static int LocalMatchState;
+        public static PointCheck I;
+        public static MatchStateEnum MatchState;
         public static bool AmTheCaptainNow;
-        public static int LocalProblemSwitch;
+
+
         public static Dictionary<string, int> PointValues = new Dictionary<string, int>();
 
+
         private static readonly Dictionary<long, IMyPlayer> AllPlayers = new Dictionary<long, IMyPlayer>();
-        private static readonly List<IMyPlayer> ListPlayers = new List<IMyPlayer>();
 
         public static HudAPIv2.HUDMessage
             IntegretyMessage,
@@ -48,369 +43,10 @@ namespace ShipPoints
             Ticketmessage,
             Problemmessage;
 
-        public static bool Broadcaststat;
         public static ShipTracker.NametagSettings NametagViewState = ShipTracker.NametagSettings.PlayerName;
-        public static int Decaytime = 180;
         public static int Delaytime = 60; //debug
 
-
-        private HashSet<IMyEntity> _managedEntities = new HashSet<IMyEntity>();
-
-        private int _count;
-        private int _fastStart;
-
-
-        private readonly Dictionary<string, int> _bp = new Dictionary<string, int>();
-
-        // Get the sphere model based on the given cap color
-
-        private bool _doClientRequest = true;
-        private bool _joinInit;
-        private readonly Dictionary<string, double> _m = new Dictionary<string, double>();
-        private readonly Dictionary<string, int> _mbp = new Dictionary<string, int>();
-        private readonly Dictionary<string, int> _mobp = new Dictionary<string, int>();
-        private readonly Dictionary<string, int> _obp = new Dictionary<string, int>();
-
-        private readonly Dictionary<string, int> _pbp = new Dictionary<string, int>();
-
-        //Old cap
-        public bool SphereVisual = true;
-        public NetSync<string> Team1;
-        public NetSync<string> Team2;
-        public NetSync<string> Team3;
-
-
-        public NetSync<int> ThreeTeams;
-
-        // todo: remove this and replace with old solution for just combining BP and mass
-        private readonly Dictionary<string, List<string>> _ts = new Dictionary<string, List<string>>();
-
-        public HudAPIv2 TextHudApi { get; private set; }
-        public WcApi WcApi { get; private set; }
-        public ShieldApi ShieldApi { get; private set; }
-        public RtsApi RtsApi { get; private set; }
-
-        private HudPointsList _hudPointsList;
-
-
-        #region Public Methods
-
-        public void Init()
-        {
-            I = this;
-
-            MyAPIGateway.Utilities.ShowMessage("ShipPoints v3.2 - Control Zone",
-                "Aim at a grid and press Shift+T to show stats, " +
-                "Shift+M to track a grid, Shift+J to cycle nametag style. ");
-
-            InitializeNetSyncVariables();
-            MyAPIGateway.Utilities.RegisterMessageHandler(2546247, AddPointValues);
-
-            // Check if the current instance is not a dedicated server
-            if (!MyAPIGateway.Utilities.IsDedicated)
-                // Initialize the sphere entities
-                // Initialize the text_api with the HUDRegistered callback
-                TextHudApi = new HudAPIv2(HudRegistered);
-
-            // Initialize the WC_api and load it if it's not null
-
-            WcApi = new WcApi();
-            WcApi?.Load();
-
-            // Initialize the SH_api and load it if it's not null
-            ShieldApi = new ShieldApi();
-            ShieldApi?.Load();
-
-            // Initialize the RTS_api and load it if it's not null
-            RtsApi = new RtsApi();
-            RtsApi?.Load();
-        }
-
-        public void Close()
-        {
-            Log.Info("Start PointCheck.UnloadData()");
-
-            TextHudApi?.Unload();
-            WcApi?.Unload();
-            ShieldApi?.Unload();
-            if (PointValues != null)
-            {
-                PointValues.Clear();
-                AllPlayers.Clear();
-                ListPlayers.Clear();
-            }
-
-            MyAPIGateway.Utilities.UnregisterMessageHandler(2546247, AddPointValues);
-
-            I = null;
-        }
-
-        public void UpdateAfterSimulation()
-        {
-            // Send request to server for tracked grids. Why is it in here? so that integretymessage is exist.
-            if (_doClientRequest && !MyAPIGateway.Session.IsServer)
-            {
-                Static.MyNetwork.TransmitToServer(new SyncRequestPacket(), false);
-                _doClientRequest = false;
-            }
-
-            if (MatchTimer.I.Ticks >= 144000)
-            {
-                MatchTimer.I.Ticks = 0;
-            }
-
-            try
-            {
-                if (!MyAPIGateway.Utilities.IsDedicated && Broadcaststat)
-                {
-                    var tick100 = MatchTimer.I.Ticks % 100 == 0;
-                    if (MatchTimer.I.Ticks - _fastStart < 300 || tick100)
-                    {
-                        _fastStart = MatchTimer.I.Ticks;
-                        if (_joinInit == false)
-                        {
-                            Static.MyNetwork.TransmitToServer(new BasicPacket(7), true, true);
-                            ServerMatchState.Fetch();
-                            Team1.Fetch();
-                            Team2.Fetch();
-                            Team3.Fetch();
-                            ServerMatchState.Fetch();
-                            ThreeTeams.Fetch();
-                            _joinInit = true;
-                        }
-                    }
-                }
-
-                if (!MyAPIGateway.Utilities.IsDedicated && MatchTimer.I.Ticks % 60 == 0)
-                {
-                    if (ServerMatchState.Value == 1 && Broadcaststat == false) Broadcaststat = true;
-                    if (!MyAPIGateway.Utilities.IsDedicated && AmTheCaptainNow)
-                        ServerMatchState.Value = LocalMatchState;
-                    else if (!MyAPIGateway.Utilities.IsDedicated && !AmTheCaptainNow)
-                        LocalMatchState = ServerMatchState.Value;
-                }
-
-                if (Broadcaststat && MatchTimer.I.Ticks % 60 == 0)
-                    if (AmTheCaptainNow && ServerMatchState.Value != 1)
-                        ServerMatchState.Value = 1;
-            }
-            catch (Exception e)
-            {
-                Log.Error($"Exception in UpdateAfterSimulation TryCatch 01: {e}");
-            }
-
-            try
-            {
-                if (MatchTimer.I.Ticks % 60 == 0)
-                {
-                    AllPlayers.Clear();
-                    MyAPIGateway.Multiplayer.Players.GetPlayers(ListPlayers, delegate (IMyPlayer p)
-                    {
-                        AllPlayers.Add(p.IdentityId, p);
-                        return false;
-                    }
-                    );
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error($"Exception in UpdateAfterSimulation TryCatch 02: {e}");
-            }
-
-            try
-            {
-                if (MatchTimer.I.Ticks % 60 == 0 && Broadcaststat)
-                {
-                    _count++;
-                    if (_count - _fastStart < 300 || _count % 100 == 0)
-                    {
-                        _managedEntities.Clear();
-                        MyAPIGateway.Entities.GetEntities(_managedEntities, entity => entity is IMyCubeGrid);
-                        foreach (var entity in _managedEntities)
-                        {
-                            var grid = entity as MyCubeGrid;
-                            if ((grid == null || !grid.HaSpecialBlockCountsockWithSubtypeId("LargeFlightMovement")) &&
-                                !grid.HaSpecialBlockCountsockWithSubtypeId("RivalAIRemoteControlLarge"))
-                                continue;
-
-                            TrackingManager.I.TrackGrid(grid, false);
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error($"Exception in UpdateAfterSimulation TryCatch 03: {e}");
-            }
-        }
-
-        public void Draw()
-        {
-            //if you are the server do nothing here
-            if (MyAPIGateway.Utilities.IsDedicated || !TextHudApi.Heartbeat)
-                return;
-            try
-            {
-                if (MyAPIGateway.Session?.Camera != null && MyAPIGateway.Session.CameraController != null && !MyAPIGateway.Gui.ChatEntryVisible &&
-                    !MyAPIGateway.Gui.IsCursorVisible && MyAPIGateway.Gui.GetCurrentScreen == MyTerminalPageEnum.None)
-                {
-                    HandleKeyInputs();
-                }
-
-                foreach (var tracker in TrackingManager.I.TrackedGrids.Values)
-                    tracker.UpdateHud();
-
-                Problemmessage.Message.Clear();
-                switch ((ProblemReportState)LocalProblemSwitch)
-                {
-                    case ProblemReportState.ItsOver:
-                        const string tempText = "<color=Red>" + "A PROBLEM HAS BEEN REPORTED," + "\n" +
-                                                "CHECK WITH BOTH TEAMS AND THEN TYPE '/st fixed' TO CLEAR THIS MESSAGE";
-                        Problemmessage.Message.Append(tempText);
-                        Problemmessage.Visible = true;
-                        break;
-                    case ProblemReportState.ThisIsFine:
-                        Problemmessage.Visible = false;
-                        break;
-                }
-
-                _hudPointsList?.UpdateDraw();
-
-                UpdateTrackingData();
-            }
-            catch (Exception e)
-            {
-                Log.Error($"Exception in Draw: {e}");
-            }
-        }
-
-        #endregion
-
-        private void InitializeNetSyncVariables()
-        {
-            Team1 = CreateNetSync("RED");
-            Team2 = CreateNetSync("BLU");
-            Team3 = CreateNetSync("NEU");
-
-            ServerMatchState = CreateNetSync(0);
-
-            ThreeTeams = CreateNetSync(0);
-
-            //ProblemSwitch = CreateNetSync<int>(0);
-        }
-
-        private NetSync<T> CreateNetSync<T>(T defaultValue)
-        {
-            return new NetSync<T>(MasterSession.I, TransferType.Both, defaultValue, false, false);
-        }
-
-        public static void Begin()
-        {
-            MatchTimer.I.Ticks = 0;
-            Broadcaststat = true;
-            if (TimerMessage != null)
-                TimerMessage.Visible = true;
-            if (Ticketmessage != null)
-                Ticketmessage.Visible = true;
-            LocalMatchState = 1;
-            MatchTimer.I.Start();
-            MyAPIGateway.Utilities.ShowNotification("Commit die. Zone activates in " + Delaytime / 3600 +
-                                                    "m, match ends in " + MatchTimer.I.MatchDurationMinutes + "m.");
-            MyLog.Default.WriteLineAndConsole("Match started!");
-        }
-
-        public static void EndMatch()
-        {
-            MatchTimer.I.Ticks = 0;
-            Broadcaststat = false;
-            if (TimerMessage != null)
-                TimerMessage.Visible = false;
-            if (Ticketmessage != null)
-                Ticketmessage.Visible = false;
-            LocalMatchState = 0;
-            AmTheCaptainNow = false;
-            MatchTimer.I.Stop();
-            MyAPIGateway.Utilities.ShowNotification("Match Ended.");
-        }
-
-        public static void AddPointValues(object obj)
-        {
-            // Deserialize the byte array (obj) into a string (var)
-            var var = MyAPIGateway.Utilities.SerializeFromBinary<string>((byte[])obj);
-
-            // Check if the deserialization was successful
-            if (var == null)
-                return;
-
-            // Split the string into an array of substrings using the ';' delimiter
-            var split = var.Split(';');
-
-            // Iterate through each substring (s) in the split array
-            foreach (var s in split)
-            {
-                // Split the substring (s) into an array of parts using the '@' delimiter
-                var parts = s.Split('@');
-                int value;
-
-                // Check if there are exactly 2 parts and if the second part is a valid integer (value)
-                if (parts.Length != 2 || !int.TryParse(parts[1], out value))
-                    continue;
-
-                // Trim the first part (name) and remove any extra whitespaces
-                var name = parts[0].Trim();
-                var lsIndex = name.IndexOf("{LS}");
-
-                // Check if the name contains "{LS}"
-                if (lsIndex != -1)
-                {
-                    // Replace "{LS}" with "Large" and update the PointValues SendingDictionary
-                    var largeName = name.Substring(0, lsIndex) + "Large" +
-                                    name.Substring(lsIndex + "{LS}".Length);
-                    PointValues[largeName] = value;
-
-                    // Replace "{LS}" with "Small" and update the PointValues SendingDictionary
-                    var smallName = name.Substring(0, lsIndex) + "Small" +
-                                    name.Substring(lsIndex + "{LS}".Length);
-                    PointValues[smallName] = value;
-                }
-                else
-                {
-                    // Update the PointValues SendingDictionary directly
-                    PointValues[name] = value;
-                }
-            }
-        }
-
-        private void HudRegistered()
-        {
-            _hudPointsList = new HudPointsList();
-            
-            IntegretyMessage = new HudAPIv2.HUDMessage(scale: 1.15f, font: "BI_SEOutlined",
-                Message: new StringBuilder(""), origin: new Vector2D(.51, .95), hideHud: false,
-                blend: BlendTypeEnum.PostPP)
-            {
-                Visible = true
-            };
-            TimerMessage = new HudAPIv2.HUDMessage(scale: 1.2f, font: "BI_SEOutlined", Message: new StringBuilder(""),
-                origin: new Vector2D(0.35, .99), hideHud: false, shadowing: true, blend: BlendTypeEnum.PostPP)
-            {
-                Visible = false, //defaulted off?
-                InitialColor = Color.White
-            };
-            Ticketmessage = new HudAPIv2.HUDMessage(scale: 1f, font: "BI_SEOutlined", Message: new StringBuilder(""),
-                origin: new Vector2D(0.51, .99), hideHud: false, shadowing: true, blend: BlendTypeEnum.PostPP)
-            {
-                Visible = false, //defaulted off?
-                InitialColor = Color.White
-            };
-
-            Problemmessage = new HudAPIv2.HUDMessage(scale: 2f, font: "BI_SEOutlined", Message: new StringBuilder(""),
-                origin: new Vector2D(-.99, 0), hideHud: false, shadowing: true, blend: BlendTypeEnum.PostPP)
-            {
-                Visible = false, //defaulted off?
-                InitialColor = Color.White
-            };
-        }
+        private readonly Dictionary<string, int> _bp = new Dictionary<string, int>(); // TODO refactor info storage
 
 
         private readonly Dictionary<MyKeys, Action> _keyAndActionPairs = new Dictionary<MyKeys, Action>
@@ -418,7 +54,7 @@ namespace ShipPoints
             {
                 MyKeys.M, () =>
                 {
-                    IMyCubeGrid castGrid = RaycastGridFromCamera();
+                    var castGrid = RaycastGridFromCamera();
                     if (castGrid == null)
                         return;
 
@@ -449,14 +85,119 @@ namespace ShipPoints
                 MyKeys.J, () =>
                 {
                     NametagViewState++;
-                    if (NametagViewState > (ShipTracker.NametagSettings) 3)
+                    if (NametagViewState > (ShipTracker.NametagSettings)3)
                         NametagViewState = 0;
-                    PointCheckHelpers.NameplateVisible = NametagViewState != 0;
                     MyAPIGateway.Utilities.ShowNotification(
                         "ShipTracker: Nameplate visibility set to " + NametagViewState);
                 }
             }
         };
+
+        private readonly List<IMyPlayer> _listPlayers = new List<IMyPlayer>();
+        private readonly Dictionary<string, double> _m = new Dictionary<string, double>();
+        private readonly Dictionary<string, int> _mbp = new Dictionary<string, int>();
+        private readonly Dictionary<string, int> _mobp = new Dictionary<string, int>();
+        private readonly Dictionary<string, int> _obp = new Dictionary<string, int>();
+
+        private readonly Dictionary<string, int> _pbp = new Dictionary<string, int>();
+
+        // todo: remove this and replace with old solution for just combining BP and mass
+        private readonly Dictionary<string, List<string>> _ts = new Dictionary<string, List<string>>();
+
+        // Get the sphere model based on the given cap color
+
+        private bool _awaitingTrackRequest = true;
+        private Func<string, MyTuple<string, float>> _climbingCostFunction;
+
+        public string[] TeamNames = { "RED", "BLU" }; // TODO this doesn't actually do anything.
+
+        private void ParsePointsDict(object message)
+        {
+            try
+            {
+                var dict = message as Dictionary<string, int>;
+                if (dict != null)
+                {
+                    PointValues = dict;
+                    return;
+                }
+
+                var climbCostFunc = message as Func<string, MyTuple<string, float>>;
+                if (climbCostFunc != null)
+                {
+                    _climbingCostFunction = climbCostFunc;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+            }
+        }
+
+        public static void BeginMatch()
+        {
+            MatchTimer.I.Ticks = 0;
+            if (TimerMessage != null)
+                TimerMessage.Visible = true;
+            if (Ticketmessage != null)
+                Ticketmessage.Visible = true;
+            MatchState = MatchStateEnum.Active;
+            MatchTimer.I.Start();
+            MyAPIGateway.Utilities.ShowNotification("Commit die. Zone activates in " + Delaytime / 3600 +
+                                                    "m, match ends in " + MatchTimer.I.MatchDurationMinutes + "m.");
+            Log.Info("Match started!");
+
+            if (MyAPIGateway.Session.IsServer)
+                HeartNetwork.I.SendToEveryone(new GameStatePacket(I));
+        }
+
+        public static void EndMatch()
+        {
+            MatchTimer.I.Ticks = 0;
+            if (TimerMessage != null)
+                TimerMessage.Visible = false;
+            if (Ticketmessage != null)
+                Ticketmessage.Visible = false;
+            MatchState = MatchStateEnum.Stopped;
+            AmTheCaptainNow = false;
+            MatchTimer.I.Stop();
+            MyAPIGateway.Utilities.ShowNotification("Match Ended.");
+            Log.Info("Match Ended.");
+
+            if (MyAPIGateway.Session.IsServer)
+                HeartNetwork.I.SendToEveryone(new GameStatePacket(I));
+        }
+
+        private void HudRegistered()
+        {
+            _hudPointsList = new HudPointsList();
+
+            IntegretyMessage = new HudAPIv2.HUDMessage(scale: 1.15f, font: "BI_SEOutlined",
+                Message: new StringBuilder(""), origin: new Vector2D(.51, .95), hideHud: false,
+                blend: BlendTypeEnum.PostPP)
+            {
+                Visible = true
+            };
+            TimerMessage = new HudAPIv2.HUDMessage(scale: 1.2f, font: "BI_SEOutlined", Message: new StringBuilder(""),
+                origin: new Vector2D(0.35, .99), hideHud: false, shadowing: true, blend: BlendTypeEnum.PostPP)
+            {
+                Visible = false, //defaulted off?
+                InitialColor = Color.White
+            };
+            Ticketmessage = new HudAPIv2.HUDMessage(scale: 1f, font: "BI_SEOutlined", Message: new StringBuilder(""),
+                origin: new Vector2D(0.51, .99), hideHud: false, shadowing: true, blend: BlendTypeEnum.PostPP)
+            {
+                Visible = false, //defaulted off?
+                InitialColor = Color.White
+            };
+
+            Problemmessage = new HudAPIv2.HUDMessage(scale: 2f, font: "BI_SEOutlined", Message: new StringBuilder(""),
+                origin: new Vector2D(-.99, 0), hideHud: false, shadowing: true, blend: BlendTypeEnum.PostPP)
+            {
+                Visible = false, //defaulted off?
+                InitialColor = Color.White
+            };
+        }
 
         private void HandleKeyInputs()
         {
@@ -470,7 +211,6 @@ namespace ShipPoints
                 if (MyAPIGateway.Input.IsNewKeyPressed(pair.Key))
                     pair.Value.Invoke();
         }
-
 
         private void UpdateTrackingData()
         {
@@ -498,8 +238,6 @@ namespace ShipPoints
                 .Append("                 <color=orange>----\n");
 
             TeamBpCalc(tt, _ts, _m, _bp, _mbp, _pbp, _obp, _mobp);
-
-            // TODO re-introduce autotrack.
 
             IntegretyMessage.Message.Clear();
             IntegretyMessage.Message.Append(tt);
@@ -563,16 +301,20 @@ namespace ShipPoints
             return thrustInMega > 1e2 ? $"{Math.Round(thrustInMega / 1e3, 2)}GN" : $"{thrustInMega}MN";
         }
 
-        private string CreateDisplayString(string ownerName, ShipTracker d, int g, string power, string thrust)
+        private string CreateDisplayString(string ownerName, ShipTracker tracker, int g, string power, string thrust)
         {
-            var ownerDisplay = ownerName != null ? ownerName.Substring(0, Math.Min(ownerName.Length, 7)) : d.GridName;
-            var integrityPercent = (int)(d.MaxShieldHealth / d.OriginalMaxShieldHealth * 100);
-            var shieldPercent = (int)d.CurrentShieldPercent;
+            var ownerDisplay = ownerName != null
+                ? ownerName.Substring(0, Math.Min(ownerName.Length, 7))
+                : tracker.GridName;
+            var integrityPercent =
+                (int)(tracker.GridIntegrity / tracker.OriginalGridIntegrity *
+                      100); // TODO fix this to use hull integrity
+            var shieldPercent = (int)tracker.CurrentShieldPercent;
             var shieldColor = shieldPercent <= 0
                 ? "red"
-                : $"{255},{255 - d.CurrentShieldHeat * 20},{255 - d.CurrentShieldHeat * 20}";
+                : $"{255},{255 - tracker.CurrentShieldHeat * 2.5f},{255 - tracker.CurrentShieldHeat * 2.5f}";
             var weaponColor = g == 0 ? "red" : "orange";
-            var functionalColor = d.IsFunctional ? "white" : "red";
+            var functionalColor = tracker.IsFunctional ? "white" : "red";
             return
                 $"<color={functionalColor}>{ownerDisplay,-8}{integrityPercent,3}%<color={functionalColor}> P:<color=orange>{power,3}<color={functionalColor}> T:<color=orange>{thrust,3}<color={functionalColor}> W:<color={weaponColor}>{g,3}<color={functionalColor}> S:<color={shieldColor}>{shieldPercent,3}%<color=white>";
         }
@@ -602,20 +344,10 @@ namespace ShipPoints
             }
         }
 
-        public static void There_Is_A_Problem()
-        {
-            LocalProblemSwitch = 1;
-        }
-
-        public static void There_Is_A_Solution()
-        {
-            LocalProblemSwitch = 0;
-        }
-
         public static IMyPlayer GetOwner(long v)
         {
-            if (AllPlayers != null && AllPlayers.ContainsKey(v)) return AllPlayers[v];
-            return null;
+            IMyPlayer owner;
+            return AllPlayers.TryGetValue(v, out owner) ? owner : null;
         }
 
         public static IMyCubeGrid RaycastGridFromCamera()
@@ -633,21 +365,164 @@ namespace ShipPoints
 
             return null;
         }
-    }
+
+        #region API Fields
+
+        public HudAPIv2 TextHudApi { get; private set; }
+        public WcApi WcApi { get; private set; }
+        public ShieldApi ShieldApi { get; private set; }
+        public RtsApi RtsApi { get; private set; }
+
+        private HudPointsList _hudPointsList;
+
+        #endregion
 
 
-    public static class GridExtensions
-    {
-        public static bool HaSpecialBlockCountsockWithSubtypeId(this IMyCubeGrid grid, string subtypeId)
+        #region Public Methods
+
+        public void Init()
         {
-            List<IMySlimBlock> allBlocks = new List<IMySlimBlock>();
-            grid?.GetBlocks(allBlocks, block => block.FatBlock != null);
+            I = this;
 
-            foreach (IMySlimBlock block in allBlocks)
-                if (block.BlockDefinition.Id.SubtypeName == subtypeId)
-                    return true;
+            MyAPIGateway.Utilities.ShowMessage("ShipPoints v3.2 - Control Zone",
+                "Aim at a grid and press Shift+T to show stats, " +
+                "Shift+M to track a grid, Shift+J to cycle nametag style. ");
 
-            return false;
+            MyAPIGateway.Utilities.RegisterMessageHandler(2546247, ParsePointsDict);
+
+            // Check if the current instance is not a dedicated server
+            if (!MyAPIGateway.Utilities.IsDedicated)
+                // Initialize the sphere entities
+                // Initialize the text_api with the HUDRegistered callback
+                TextHudApi = new HudAPIv2(HudRegistered);
+
+            // Initialize the WC_api and load it if it's not null
+
+            WcApi = new WcApi();
+            WcApi?.Load();
+
+            // Initialize the SH_api and load it if it's not null
+            ShieldApi = new ShieldApi();
+            ShieldApi?.Load();
+
+            // Initialize the RTS_api and load it if it's not null
+            RtsApi = new RtsApi();
+            RtsApi?.Load();
         }
+
+        public void Close()
+        {
+            Log.Info("Start PointCheck.UnloadData()");
+
+            TextHudApi?.Unload();
+            WcApi?.Unload();
+            ShieldApi?.Unload();
+            if (PointValues != null)
+            {
+                PointValues.Clear();
+                AllPlayers.Clear();
+            }
+
+            MyAPIGateway.Utilities.UnregisterMessageHandler(2546247, ParsePointsDict);
+
+            I = null;
+        }
+
+        public void UpdateAfterSimulation()
+        {
+            // Send request to server for tracked grids.
+            if (_awaitingTrackRequest && !MyAPIGateway.Session.IsServer)
+            {
+                HeartNetwork.I.SendToServer(new SyncRequestPacket());
+                _awaitingTrackRequest = false;
+            }
+
+            try
+            {
+                UpdateTrackingData();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Exception in UpdateAfterSimulation TryCatch 01: {e}");
+            }
+
+            try
+            {
+                if (MatchTimer.I.Ticks % 60 == 0)
+                {
+                    AllPlayers.Clear();
+                    MyAPIGateway.Multiplayer.Players.GetPlayers(_listPlayers, delegate(IMyPlayer p)
+                        {
+                            AllPlayers.Add(p.IdentityId, p);
+                            return false;
+                        }
+                    );
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Exception in UpdateAfterSimulation TryCatch 02: {e}");
+            }
+        }
+
+        public void Draw()
+        {
+            //if you are the server do nothing here
+            if (MyAPIGateway.Utilities.IsDedicated || !TextHudApi.Heartbeat)
+                return;
+            try
+            {
+                if (MyAPIGateway.Session?.Camera != null && MyAPIGateway.Session.CameraController != null &&
+                    !MyAPIGateway.Gui.ChatEntryVisible &&
+                    !MyAPIGateway.Gui.IsCursorVisible && MyAPIGateway.Gui.GetCurrentScreen == MyTerminalPageEnum.None)
+                    HandleKeyInputs();
+
+                foreach (var tracker in TrackingManager.I.TrackedGrids.Values)
+                    tracker.UpdateHud();
+
+                _hudPointsList?.UpdateDraw();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Exception in Draw: {e}");
+            }
+        }
+
+        public void ReportProblem(string issueMessage = "", bool sync = true)
+        {
+            if (issueMessage.Length > 50)
+                issueMessage = issueMessage.Substring(0, 50);
+
+            Problemmessage.Message.Clear();
+            Problemmessage.Message.Append(
+                "<color=red>A PROBLEM HAS BEEN REPORTED.\n<color=white>CHECK WITH BOTH TEAMS AND THEN TYPE '/st fixed' TO CLEAR THIS MESSAGE.");
+            if (issueMessage != "")
+                Problemmessage.Message.Append("\n" + issueMessage);
+            Problemmessage.Visible = true;
+
+            if (sync)
+                HeartNetwork.I.SendToEveryone(new ProblemReportPacket(true, issueMessage));
+        }
+
+        public void ResolvedProblem(bool sync = true)
+        {
+            Problemmessage.Message.Clear();
+            Problemmessage.Visible = false;
+
+            if (sync)
+                HeartNetwork.I.SendToEveryone(new ProblemReportPacket(false));
+        }
+
+        public static void ClimbingCostRename(ref string blockDisplayName, ref float climbingCostMultiplier)
+        {
+            if (I._climbingCostFunction == null)
+                return;
+            var results = I._climbingCostFunction.Invoke(blockDisplayName);
+
+            blockDisplayName = results.Item1;
+            climbingCostMultiplier = results.Item2;
+        }
+
+        #endregion
     }
 }

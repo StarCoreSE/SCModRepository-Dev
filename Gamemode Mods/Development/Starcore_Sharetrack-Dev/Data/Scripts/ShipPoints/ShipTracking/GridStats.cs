@@ -12,11 +12,11 @@ namespace ShipPoints.ShipTracking
 {
     internal class GridStats // TODO convert this to be event-driven. OnBlockPlace, etc. Keep a queue.
     {
-        private ShieldApi ShieldApi => PointCheck.I.ShieldApi;
-        private WcApi WcApi => PointCheck.I.WcApi;
+        private readonly HashSet<IMyCubeBlock> _fatBlocks = new HashSet<IMyCubeBlock>();
 
         private readonly HashSet<IMySlimBlock> _slimBlocks;
-        private readonly HashSet<IMyCubeBlock> _fatBlocks = new HashSet<IMyCubeBlock>();
+        private ShieldApi ShieldApi => PointCheck.I.ShieldApi;
+        private WcApi WcApi => PointCheck.I.WcApi;
 
         public bool NeedsUpdate { get; private set; } = true;
 
@@ -26,13 +26,18 @@ namespace ShipPoints.ShipTracking
         {
             Grid = grid;
 
-            List<IMySlimBlock> allSlimBlocks = new List<IMySlimBlock>();
+            var allSlimBlocks = new List<IMySlimBlock>();
             Grid.GetBlocks(allSlimBlocks);
             _slimBlocks = allSlimBlocks.ToHashSet();
 
             foreach (var block in _slimBlocks)
+            {
                 if (block.FatBlock != null)
                     _fatBlocks.Add(block.FatBlock);
+                GridIntegrity += block.Integrity;
+            }
+
+            OriginalGridIntegrity = GridIntegrity;
 
             Grid.OnBlockAdded += OnBlockAdd;
             Grid.OnBlockRemoved += OnBlockRemove;
@@ -50,10 +55,8 @@ namespace ShipPoints.ShipTracking
 
         public void Update()
         {
-            UpdateShieldStats();
-
-            if (!NeedsUpdate)
-                return;
+            if (!NeedsUpdate) // Modscripts changing the output of a block (i.e. Fusion Systems) without adding/removing blocks will not be updated properly.
+                return; // I am willing to make this sacrifice.
 
             BattlePoints = 0;
             OffensivePoints = 0;
@@ -63,7 +66,8 @@ namespace ShipPoints.ShipTracking
             CockpitCount = 0;
 
             // Setting battlepoints first so that calcs can do calc stuff
-            foreach (var block in _fatBlocks) // If slimblock points become necessary in the future, change this to _slimBlock
+            foreach (var block in
+                     _fatBlocks) // If slimblock points become necessary in the future, change this to _slimBlock
                 CalculateCost(block);
 
             UpdateGlobalStats();
@@ -79,28 +83,24 @@ namespace ShipPoints.ShipTracking
         public readonly IMyCubeGrid Grid;
 
         // Global Stats
-        public int BlockCount { get; private set; } = 0;
-        public int HeavyArmorCount { get; private set; } = 0;
-        public int CockpitCount { get; private set; } = 0;
-        public int PCU { get; private set; } = 0;
+        public int BlockCount { get; private set; }
+        public int HeavyArmorCount { get; private set; }
+        public int CockpitCount { get; private set; }
+        public int PCU { get; private set; }
         public readonly Dictionary<string, int> BlockCounts = new Dictionary<string, int>();
         public readonly Dictionary<string, int> SpecialBlockCounts = new Dictionary<string, int>();
-        public float TotalThrust { get; private set; } = 0;
-        public float TotalTorque { get; private set; } = 0;
-        public float TotalPower { get; private set; } = 0;
+        public float TotalThrust { get; private set; }
+        public float TotalTorque { get; private set; }
+        public float TotalPower { get; private set; }
+        public float GridIntegrity { get; private set; }
+        public float OriginalGridIntegrity { get; private set; }
 
         // BattlePoint Stats
-        public int BattlePoints { get; private set; } = 0;
-        public int OffensivePoints { get; private set; } = 0;
-        public int PowerPoints { get; private set; } = 0;
-        public int MovementPoints { get; private set; } = 0;
-        public int PointDefensePoints { get; private set; } = 0;
-
-        // Shield Stats
-        public float OriginalMaxShieldHealth { get; private set; } = -1;
-        public float MaxShieldHealth { get; private set; } = -1;
-        public float CurrentShieldPercent { get; private set; } = -1;
-        public float CurrentShieldHeat { get; private set; } = -1;
+        public int BattlePoints { get; private set; }
+        public int OffensivePoints { get; private set; }
+        public int PowerPoints { get; private set; }
+        public int MovementPoints { get; private set; }
+        public int PointDefensePoints { get; private set; }
 
         // Weapon Stats
         public readonly Dictionary<string, int> WeaponCounts = new Dictionary<string, int>();
@@ -118,6 +118,8 @@ namespace ShipPoints.ShipTracking
             if (block.FatBlock != null)
                 _fatBlocks.Add(block.FatBlock);
 
+            GridIntegrity += block.Integrity;
+
             NeedsUpdate = true;
         }
 
@@ -129,6 +131,8 @@ namespace ShipPoints.ShipTracking
             _slimBlocks.Remove(block);
             if (block.FatBlock != null)
                 _fatBlocks.Remove(block.FatBlock);
+
+            GridIntegrity -= block.Integrity;
 
             NeedsUpdate = true;
         }
@@ -143,7 +147,6 @@ namespace ShipPoints.ShipTracking
 
         #region Private Methods
 
-
         private void UpdateGlobalStats()
         {
             BlockCounts.Clear();
@@ -154,28 +157,40 @@ namespace ShipPoints.ShipTracking
 
             foreach (var block in _fatBlocks)
             {
-                if (block is IMyCockpit)
+                if (block is IMyCockpit && block.IsFunctional)
                     CockpitCount++;
 
-                if (block is IMyThrust)
+                if (block is IMyThrust && block.IsFunctional)
+                {
                     TotalThrust += ((IMyThrust)block).MaxEffectiveThrust;
+                }
 
-                else if (block is IMyGyro)
-                    TotalTorque += ((MyGyroDefinition)MyDefinitionManager.Static.GetDefinition((block as IMyGyro).BlockDefinition)).ForceMagnitude * (block as IMyGyro).GyroStrengthMultiplier;
+                else if (block is IMyGyro && block.IsFunctional)
+                {
+                    TotalTorque +=
+                        ((MyGyroDefinition)MyDefinitionManager.Static.GetDefinition((block as IMyGyro).BlockDefinition))
+                        .ForceMagnitude * (block as IMyGyro).GyroStrengthMultiplier;
+                }
 
-                else if (block is IMyPowerProducer)
+                else if (block is IMyPowerProducer && block.IsFunctional)
+                {
                     TotalPower += ((IMyPowerProducer)block).MaxOutput;
+                }
 
                 else if (!WcApi.HasCoreWeapon((MyEntity)block))
                 {
-                    string blockDisplayName = block.DefinitionDisplayNameText;
+                    var blockDisplayName = block.DefinitionDisplayNameText;
+                    if (blockDisplayName
+                        .Contains("Armor")) // This is a bit stupid. TODO find a better way to sort out armor blocks.
+                        continue;
+
                     float ignored = 0;
-                    ShipTracker.ClimbingCostRename(ref blockDisplayName, ref ignored);
+                    PointCheck.ClimbingCostRename(ref blockDisplayName, ref ignored);
+                    ShipTracker.SpecialBlockRename(ref blockDisplayName, block);
                     if (!SpecialBlockCounts.ContainsKey(blockDisplayName))
                         SpecialBlockCounts.Add(blockDisplayName, 0);
                     SpecialBlockCounts[blockDisplayName]++;
                 }
-                    
             }
 
             BlockCount = ((MyCubeGrid)Grid).BlocksCount;
@@ -186,29 +201,9 @@ namespace ShipPoints.ShipTracking
                 if (slimBlock.FatBlock != null)
                     continue;
 
-                string subtype = slimBlock.BlockDefinition.Id.SubtypeName.ToLower();
-                if (subtype.Contains("heavy"))
+                if (slimBlock.BlockDefinition.Id.SubtypeName.Contains("Heavy"))
                     HeavyArmorCount++;
             }
-        }
-
-        public void UpdateShieldStats()
-        {
-            var shieldController = ShieldApi.GetShieldBlock(Grid);
-            if (shieldController == null)
-            {
-                OriginalMaxShieldHealth = -1;
-                MaxShieldHealth = -1;
-                CurrentShieldPercent = -1;
-                CurrentShieldHeat = -1;
-                return;
-            }
-
-            MaxShieldHealth = ShieldApi.GetMaxHpCap(shieldController);
-            if (OriginalMaxShieldHealth == -1 && !ShieldApi.IsFortified(shieldController))
-                OriginalMaxShieldHealth = MaxShieldHealth;
-            CurrentShieldPercent = ShieldApi.GetShieldPercent(shieldController);
-            CurrentShieldHeat = ShieldApi.GetShieldHeat(shieldController);
         }
 
         private void UpdateWeaponStats()
@@ -218,14 +213,14 @@ namespace ShipPoints.ShipTracking
             {
                 // Check that the block has points and is a weapon
                 int weaponPoints;
-                string weaponDisplayName = weaponBlock.DefinitionDisplayNameText;
+                var weaponDisplayName = weaponBlock.DefinitionDisplayNameText;
                 if (!PointCheck.PointValues.TryGetValue(weaponBlock.BlockDefinition.SubtypeName, out weaponPoints) ||
-                    !WcApi.HasCoreWeapon((MyEntity) weaponBlock))
+                    !WcApi.HasCoreWeapon((MyEntity)weaponBlock))
                     continue;
 
                 float thisClimbingCostMult = 0;
 
-                ShipTracker.ClimbingCostRename(ref weaponDisplayName, ref thisClimbingCostMult);
+                PointCheck.ClimbingCostRename(ref weaponDisplayName, ref thisClimbingCostMult);
 
                 if (!WeaponCounts.ContainsKey(weaponDisplayName))
                     WeaponCounts.Add(weaponDisplayName, 0);
@@ -237,20 +232,20 @@ namespace ShipPoints.ShipTracking
         private void CalculateCost(IMyCubeBlock block)
         {
             int blockPoints;
-            string blockDisplayName = block.DefinitionDisplayNameText;
+            var blockDisplayName = GetDDT(block);
             if (!PointCheck.PointValues.TryGetValue(block.BlockDefinition.SubtypeName, out blockPoints))
                 return;
 
             float thisClimbingCostMult = 0;
-            ShipTracker.ClimbingCostRename(ref blockDisplayName, ref thisClimbingCostMult);
+            PointCheck.ClimbingCostRename(ref blockDisplayName, ref thisClimbingCostMult);
 
             if (!BlockCounts.ContainsKey(blockDisplayName))
                 BlockCounts.Add(blockDisplayName, 0);
 
-            int thiSpecialBlockCountsockCount = BlockCounts[blockDisplayName]++;
+            var thisSpecialBlocksCount = BlockCounts[blockDisplayName]++;
 
-            if (thisClimbingCostMult > 0 && thiSpecialBlockCountsockCount > 1)
-                blockPoints += (int)(blockPoints * thiSpecialBlockCountsockCount * thisClimbingCostMult);
+            if (thisClimbingCostMult > 0 && thisSpecialBlocksCount > 1)
+                blockPoints += (int)(blockPoints * thisSpecialBlocksCount * thisClimbingCostMult);
 
             if (block is IMyThrust || block is IMyGyro)
                 MovementPoints += blockPoints;
@@ -267,6 +262,11 @@ namespace ShipPoints.ShipTracking
             }
 
             BattlePoints += blockPoints;
+        }
+
+        private string GetDDT(IMyCubeBlock block)
+        {
+            return block.DefinitionDisplayNameText;
         }
 
         #endregion

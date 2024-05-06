@@ -1,6 +1,4 @@
 ﻿using System;
-using Math0424.Networking;
-using SENetworkAPI;
 using ShipPoints.Commands;
 using ShipPoints.HeartNetworking;
 using ShipPoints.ShipTracking;
@@ -11,11 +9,10 @@ namespace ShipPoints
     [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation)]
     internal class MasterSession : MySessionComponentBase
     {
-        public static MasterSession I;
-
         public const ushort ComId = 42511;
         public const string Keyword = "/debug";
         public const string DisplayName = "Debug";
+        public static MasterSession I;
 
         private readonly PointCheck _pointCheck = new PointCheck();
 
@@ -25,9 +22,6 @@ namespace ShipPoints
 
             try
             {
-                MyNetworkHandler.Init();
-                if (!NetworkApi.IsInitialized)
-                    NetworkApi.Init(ComId, DisplayName, Keyword);
                 HeartNetwork.I = new HeartNetwork();
                 HeartNetwork.I.LoadData(42521);
                 CommandHandler.Init();
@@ -48,7 +42,6 @@ namespace ShipPoints
                 TrackingManager.Close();
                 CommandHandler.Close();
                 HeartNetwork.I.UnloadData();
-                MyNetworkHandler.Static?.Dispose();
             }
             catch (Exception ex)
             {
@@ -88,7 +81,6 @@ namespace ShipPoints
         {
             try
             {
-
             }
             catch (Exception ex)
             {
