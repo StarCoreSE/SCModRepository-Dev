@@ -9,12 +9,11 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.setup.outputs.value }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       #- uses: actions/checkout@v4.1.4
-      - id: matrix
-        run: |
-           echo "matrix={\"include\":[{\"project\":\"foo\",\"config\":\"Debug\"},{\"project\":\"bar\",\"config\":\"Release\"}]}" >> $GITHUB_OUTPUT
+      - id: set-matrix
+        run: echo "matrix={\"include\":[{\"project\":\"foo\",\"config\":\"Debug\"},{\"project\":\"bar\",\"config\":\"Release\"}]}" >> $GITHUB_OUTPUT
   
   workshop-upload:
     needs: setup
