@@ -1,18 +1,27 @@
 name: Aristeas UniversalUpload Test
-on: push
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
 jobs:
-  job1:
+  setup:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.matrix.outputs.value }}
     steps:
-    - id: set-matrix
-      run: echo "matrix={\"include\":[{\"project\":\"foo\",\"config\":\"Debug\"},{\"project\":\"bar\",\"config\":\"Release\"}]}" >> $GITHUB_OUTPUT
-  job2:
-    needs: job1
+      - uses: actions/checkout@v4.1.4
+      - id: matrix
+        run: |
+           bash ModIdFinder.sh >> $GITHUB_OUTPUT
+  
+  workshop-upload:
+    needs: setup
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{fromJson(needs.job1.outputs.matrix)}}
+      matrix: ${{fromJSON(needs.setup.outputs.matrix)}}
     steps:
-    - run: echo ${{ matrix.project }}
-    - run: echo ${{ matrix.config }}
+      - run: |
+          echo "${{ matrix.value }}"
+      
