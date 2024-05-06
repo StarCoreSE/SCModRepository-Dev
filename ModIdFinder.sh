@@ -9,7 +9,8 @@ while read path; do
       if [[ $sbmiLine = \<Id\>* ]] ; then
           tmp=${sbmiLine#*>}
           modId=${tmp%<*}
-          MODIDARR+=({\"value\":$modId})
+          modPath=${path%/*}
+          MODIDARR+=({\"value\":$modId,\"path\":\"$modPath\"})
       fi
   done < "$path"
 done < allModDatas.txt
