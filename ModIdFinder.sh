@@ -15,4 +15,4 @@ while read path; do
 done < allModDatas.txt
 
 data_string="${MODIDARR[*]}"
-echo "value=[${data_string//${IFS:0:1}/,}]"
+echo "matrix={\"include\":[\"value\":[${data_string//${IFS:0:1}/,}]}]"
