@@ -19,10 +19,10 @@ jobs:
           echo "${{ steps.matrix.outputs.value }}"
   
   workshop-upload:
+    needs: setup
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        value: ${{fromJSON(needs.setup.outputs.matrix)}}
+      matrix: ${{fromJSON(needs.setup.outputs.matrix)}}
     steps:
       - run: |
           echo "${{ matrix.value }}"
