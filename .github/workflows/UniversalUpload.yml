@@ -13,7 +13,7 @@ jobs:
     steps:
       #- uses: actions/checkout@v4.1.4
       - id: set-matrix
-        run: echo "matrix={\"include\":[{\"value\":893434534}, {\"value\":3405893405}, {\"value\":345098341}}]}" >> $GITHUB_OUTPUT
+        run: echo "matrix={\"include\":[{\"value\":893434534}, {\"value\":3405893405}, {\"value\":345098341}]}" >> $GITHUB_OUTPUT
   
   workshop-upload:
     needs: setup
