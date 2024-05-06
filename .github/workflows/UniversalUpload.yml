@@ -22,5 +22,5 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     steps:
       - run: |
-          echo "${{ matrix }}"
+          echo "${{ matrix.value }}"
       
