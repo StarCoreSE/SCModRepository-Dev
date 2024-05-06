@@ -10,10 +10,13 @@ while read path; do
           tmp=${sbmiLine#*>}
           modId=${tmp%<*}
           modPath=${path%/*}
-          MODIDARR+=(\{\"value\":$modId,\"path\":\"$modPath\"\})
+          MODIDARR+="{\"value\":$modId,\"path\":\"$modPath\"}"
       fi
   done < "$path"
 done < allModDatas.txt
 
-data_string="${MODIDARR[*]}"
-echo "matrix={\"include\":[${data_string//${IFS:0:1}/,}]}]"
+delim=""
+for item in "${MODIDARR[@]}"; do
+  printf "%s" "$delim$item"
+  delim=","
+done
