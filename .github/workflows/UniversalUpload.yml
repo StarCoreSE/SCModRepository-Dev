@@ -21,6 +21,13 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     steps:
-      - run: |
-          echo "${{ matrix.value }}"
-      
+      - uses: actions/checkout@v4.1.4
+      - uses: AnarkisGaming/workshop@v1
+        with:
+          appID: 244850
+          publishedFileID: ${{ matrix.value }}
+          path: ${{ matrix.path }}
+          changelog: ${{ github.event.head_commit.message }}
+        env:
+          STEAM_ACCOUNT_NAME: ${{ secrets.accountname }}
+          STEAM_PASSWORD: ${{ secrets.password }}
