@@ -5,7 +5,6 @@ find . -type f -name "*.sbmi" >> ./allModDatas.txt
 MODIDARR=()
 
 while read path; do
-  echo Reading $path
   while read sbmiLine; do
       if [[ $sbmiLine = \<Id\>* ]] ; then
           tmp=${sbmiLine#*>}
