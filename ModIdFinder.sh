@@ -9,10 +9,10 @@ while read path; do
       if [[ $sbmiLine = \<Id\>* ]] ; then
           tmp=${sbmiLine#*>}
           modId=${tmp%<*}
-          MODIDARR+=($modId)
+          MODIDARR+=({\"value\":$modId})
       fi
   done < "$path"
 done < allModDatas.txt
 
 data_string="${MODIDARR[*]}"
-echo "matrix={\"include\":[\"value\":[${data_string//${IFS:0:1}/,}]}]"
+echo "matrix={\"include\":[${data_string//${IFS:0:1}/,}]}]"
