@@ -10,7 +10,7 @@ while read path; do
           tmp=${sbmiLine#*>}
           modId=${tmp%<*}
           modPath=${path%/*}
-          MODIDARR+=({\"value\":$modId,\"path\":\"$modPath\"})
+          MODIDARR+=(\{\"value\":$modId,\"path\":\"$modPath\"\})
       fi
   done < "$path"
 done < allModDatas.txt
