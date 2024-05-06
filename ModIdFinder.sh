@@ -21,4 +21,4 @@ for item in "${MODIDARR[@]}"; do
   joined="$joined$delim$item"
   delim=","
 done
-echo "$joined"
+echo "matrix={\"include\":[$joined]}]"
