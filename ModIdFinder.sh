@@ -1,3 +1,5 @@
+#!/bin/bash
+
 find . -type f -name "*.sbmi" >> ./allModDatas.txt
 
 MODIDARR=()
