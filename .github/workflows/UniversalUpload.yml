@@ -13,7 +13,7 @@ jobs:
     steps:
       #- uses: actions/checkout@v4.1.4
       - id: set-matrix
-        run: echo "matrix={\"include\":[{\"project\":\"foo\",\"config\":\"Debug\"},{\"project\":\"bar\",\"config\":\"Release\"}]}" >> $GITHUB_OUTPUT
+        run: echo "matrix={\"include\":[893434534, 3405893405, 345098341]}" >> $GITHUB_OUTPUT
   
   workshop-upload:
     needs: setup
@@ -22,5 +22,5 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     steps:
       - run: |
-          echo "${{ matrix.project }}"
+          echo "${{ matrix }}"
       
