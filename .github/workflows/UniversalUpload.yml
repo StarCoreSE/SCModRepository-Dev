@@ -11,7 +11,7 @@ jobs:
     outputs:
       matrix: ${{ steps.matrix.outputs.value }}
     steps:
-      - uses: actions/checkout@v4.1.4
+      #- uses: actions/checkout@v4.1.4
       - id: matrix
         run: |
            echo "matrix={\"value\":[352345,12345425642,1341232]} >> $GITHUB_OUTPUT
