@@ -10,7 +10,7 @@ while read path; do
           tmp=${sbmiLine#*>}
           modId=${tmp%<*}
           modPathTmp=${path%/*}
-          modPath=${modPathTmp// /:}
+          modPath=${modPathTmp// /\`}
           MODIDARR+=(\{\"value\":$modId,\"path\":\"$modPath\"\})
       fi
   done < "$path"
@@ -19,7 +19,7 @@ done < allModDatas.txt
 delim=""
 joined=""
 for item in "${MODIDARR[@]}"; do
-  joined="${joined}${delim}${item//:/ }"
+  joined="${joined}${delim}${item//\`/ }"
   delim=","
 done
 echo "matrix={\"include\":[$joined]}]"
