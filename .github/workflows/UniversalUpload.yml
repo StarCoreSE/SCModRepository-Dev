@@ -1,0 +1,45 @@
+name: Aristeas UniversalUpload Test
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - id: matrix
+        run: |
+          echo > ./allModDatas.txt
+          find . -type f -name "*.sbmi" >> ./allModDatas.txt
+          
+          MODIDARR=()
+          
+          while read path; do
+            echo Reading $path
+            while read sbmiLine; do
+                if [[ $sbmiLine = \<Id\>* ]] ; then
+                    tmp=${sbmiLine#*>}
+                    modId=${tmp%<*}
+                    echo "| Found modId $modId"
+                    MODIDARR+=($modId)
+                fi
+            done < "$path"
+          done < allModDatas.txt
+          
+          data_string="${MODIDARR[*]}"
+          echo "[${data_string//${IFS:0:1}/,}]" >> $GITHUB_OUTPUT
+      - run: |
+          echo "${{ steps.matrix.outputs.value }}"
+  
+  workshop-upload:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        value: ${{fromJSON(needs.setup.outputs.matrix)}}
+    steps:
+      - run: |
+          echo "${{ matrix.value }}"
