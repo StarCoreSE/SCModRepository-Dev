@@ -9,7 +9,7 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.matrix.outputs.value }}
+      matrix: ${{ steps.setup.outputs.value }}
     steps:
       #- uses: actions/checkout@v4.1.4
       - id: matrix
@@ -20,7 +20,7 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{fromJSON(needs.setup.outputs.matrix)}}
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     steps:
       - run: |
           echo "${{ matrix.project }}"
