@@ -11,26 +11,10 @@ jobs:
     outputs:
       matrix: ${{ steps.matrix.outputs.value }}
     steps:
+      - uses: actions/checkout@v4.1.4
       - id: matrix
         run: |
-          find . -type f -name "*.sbmi" >> ./allModDatas.txt
-          
-          MODIDARR=()
-          
-          while read path; do
-            echo Reading $path
-            while read sbmiLine; do
-                if [[ $sbmiLine = \<Id\>* ]] ; then
-                    tmp=${sbmiLine#*>}
-                    modId=${tmp%<*}
-                    echo "| Found modId $modId"
-                    MODIDARR+=($modId)
-                fi
-            done < "$path"
-          done < allModDatas.txt
-          
-          data_string="${MODIDARR[*]}"
-          echo "[${data_string//${IFS:0:1}/,}]" >> $GITHUB_OUTPUT
+           bash ModIdFinder.sh >> $GITHUB_OUTPUT
       - run: |
           echo "${{ steps.matrix.outputs.value }}"
   
