@@ -41,3 +41,6 @@ jobs:
           publishedFileID: ${{ matrix.value }}
           path: ${{ matrix.path }}
           changelog: ${{ github.event.head_commit.message }}
+        env:
+          STEAM_ACCOUNT_NAME: ${{ secrets.accountname }}
+          STEAM_PASSWORD: ${{ secrets.password }}
