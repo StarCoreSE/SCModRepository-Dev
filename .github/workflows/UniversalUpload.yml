@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '**/modinfo.sbmi'
 
 jobs:
   setup:
@@ -13,7 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4.1.4
       - id: set-matrix
-        run: bash ModIdFinder.sh >> $GITHUB_OUTPUT
+        run: |
+          modPath=$(dirname ${{ github.event.path }})
+          modId=$(grep -oP '(?<=<Id>)[^<]+' "${{ github.event.path }}")
+          echo "matrix={\"include\":[{\"value\":\"$modId\",\"path\":\"$modPath\"}]}" >> $GITHUB_OUTPUT
   
   workshop-upload:
     needs: setup
