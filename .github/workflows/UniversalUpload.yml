@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - '**/modinfo.sbmi'
 
 jobs:
   setup:
@@ -17,12 +15,13 @@ jobs:
         run: |
           mods=()
           for file in $(git diff --name-only ${{ github.event.before }} ${{ github.event.after }}); do
-            if [[ $file == *"modinfo.sbmi" ]]; then
+            if [[ -f "$(dirname $file)/modinfo.sbmi" ]]; then
               modPath=$(dirname $file)
-              modId=$(grep -oP '(?<=<Id>)\d+(?=</Id>)' $file)
+              modId=$(grep -oP '(?<=<Id>)\d+(?=</Id>)' "$modPath/modinfo.sbmi")
               mods+=("{\"value\":$modId,\"path\":\"$modPath\"}")
             fi
           done
+          mods=($(printf "%s\n" "${mods[@]}" | sort -u))
           matrix=$(IFS=,; echo "${mods[*]}")
           echo "matrix={\"include\":[$matrix]}" >> $GITHUB_OUTPUT
   
