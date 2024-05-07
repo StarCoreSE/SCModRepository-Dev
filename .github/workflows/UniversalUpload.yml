@@ -15,21 +15,8 @@ jobs:
       - id: set-matrix
         run: bash ModIdFinder.sh >> $GITHUB_OUTPUT
   
-  login:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4.1.4
-      - uses: AnarkisGaming/workshop@v1
-        with:
-          appID: 244850
-          login: true
-        env:
-          STEAM_ACCOUNT_NAME: ${{ secrets.accountname }}
-          STEAM_PASSWORD: ${{ secrets.password }}
-  
   workshop-upload:
-    needs: [setup, login]
+    needs: setup
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
@@ -38,6 +25,7 @@ jobs:
       - uses: AnarkisGaming/workshop@v1
         with:
           appID: 244850
+          login: true
           publishedFileID: ${{ matrix.value }}
           path: ${{ matrix.path }}
           changelog: ${{ github.event.head_commit.message }}
