@@ -9,15 +9,13 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      mod_data: ${{ steps.set-output.outputs.mod_data }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4.1.4
-      - id: set-output
-        run: |
-          mod_data=$(bash ModIdFinder.sh)
-          echo "mod_data=$mod_data" >> $GITHUB_OUTPUT
+      - id: set-matrix
+        run: bash ModIdFinder.sh >> $GITHUB_OUTPUT
   
-  workshop-upload:
+  login:
     needs: setup
     runs-on: ubuntu-latest
     steps:
@@ -29,14 +27,20 @@ jobs:
         env:
           STEAM_ACCOUNT_NAME: ${{ secrets.accountname }}
           STEAM_PASSWORD: ${{ secrets.password }}
-      - name: Upload mod files
-        run: |
-          mod_data='${{ needs.setup.outputs.mod_data }}'
-          IFS=',' read -ra mod_array <<< "$mod_data"
-          for mod in "${mod_array[@]}"; do
-            IFS=':' read -ra mod_info <<< "$mod"
-            mod_id="${mod_info[0]}"
-            mod_path="${mod_info[1]}"
-            echo "Uploading mod with ID: $mod_id, Path: $mod_path"
-            steamcmd +login ${{ secrets.accountname }} ${{ secrets.password }} +workshop_build_item "$mod_path" "$mod_id" +quit
-          done
+  
+  workshop-upload:
+    needs: [setup, login]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4.1.4
+      - uses: AnarkisGaming/workshop@v1
+        with:
+          appID: 244850
+          publishedFileID: ${{ matrix.value }}
+          path: ${{ matrix.path }}
+          changelog: ${{ github.event.head_commit.message }}
+        env:
+          STEAM_ACCOUNT_NAME: ${{ secrets.accountname }}
+          STEAM_PASSWORD: ${{ secrets.password }}
