@@ -1,6 +1,5 @@
 name: Aristeas UniversalUpload Test
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
@@ -16,9 +15,16 @@ jobs:
       - uses: actions/checkout@v4.1.4
       - id: set-matrix
         run: |
-          modPath=$(dirname ${{ github.event.path }})
-          modId=$(grep -oP '(?<=<Id>)[^<]+' "${{ github.event.path }}")
-          echo "matrix={\"include\":[{\"value\":\"$modId\",\"path\":\"$modPath\"}]}" >> $GITHUB_OUTPUT
+          mods=()
+          for file in $(git diff --name-only ${{ github.event.before }} ${{ github.event.after }}); do
+            if [[ $file == *"modinfo.sbmi" ]]; then
+              modPath=$(dirname $file)
+              modId=$(grep -oP '(?<=<Id>)\d+(?=</Id>)' $file)
+              mods+=("{\"value\":$modId,\"path\":\"$modPath\"}")
+            fi
+          done
+          matrix=$(IFS=,; echo "${mods[*]}")
+          echo "matrix={\"include\":[$matrix]}" >> $GITHUB_OUTPUT
   
   workshop-upload:
     needs: setup
