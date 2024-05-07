@@ -884,6 +884,10 @@ namespace ShipPoints
                     blockDisplayName = "Defensive Generator";
                     costMultiplier = 50.00f;
                     break;
+				case "[FAS] Neptune Torpedo":
+                    blockDisplayName = "Neptune Torpedo";
+                    costMultiplier = 0.25f;
+                    break;
             }
 
             return new MyTuple<string, float>(blockDisplayName, costMultiplier);
