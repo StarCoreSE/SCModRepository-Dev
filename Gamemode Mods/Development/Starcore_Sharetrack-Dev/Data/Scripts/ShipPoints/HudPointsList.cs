@@ -105,9 +105,11 @@ namespace ShipPoints
             var stopwatch = new System.Diagnostics.Stopwatch();
             stopwatch.Start();
             ShipTracker shipTracker;
-            TrackingManager.I.TrackedGrids.TryGetValue(focusedGrid, out shipTracker);
-            if (shipTracker == null)
+            if (!TrackingManager.I.TrackedGrids.TryGetValue(focusedGrid, out shipTracker))
+            {
                 shipTracker = new ShipTracker(focusedGrid, false);
+                TrackingManager.I.TrackedGrids[focusedGrid] = shipTracker;
+            }
 
             var totalShieldString = "None";
 
