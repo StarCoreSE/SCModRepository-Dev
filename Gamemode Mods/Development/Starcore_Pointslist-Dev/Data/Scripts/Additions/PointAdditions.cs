@@ -821,6 +821,10 @@ namespace ShipPoints
                     blockDisplayName = " Laser";
                     costMultiplier = 0.15f;
                     break;
+                case "[SOL] ArcStrike CS-LR Torpedo":
+                    blockDisplayName = "ArcStrike Torpedo";
+                    costMultiplier = 0.25f;
+                    break;
                 case "Reinforced Blastplate":
                 case "Active Blastplate":
                 case "Standard Blastplate A":

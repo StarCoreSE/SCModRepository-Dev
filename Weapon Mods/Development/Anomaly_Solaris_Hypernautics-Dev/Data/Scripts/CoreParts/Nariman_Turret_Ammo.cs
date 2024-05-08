@@ -295,14 +295,14 @@ namespace Scripts
             },
             AmmoGraphics = new GraphicDef
             {
-                ModelName = "", // Model Path goes here.  "\\Models\\Ammo\\Starcore_Arrow_Missile_Large"
-                VisualProbability = 1f, // %
-                ShieldHitDraw = true,
+                ModelName = "\\Models\\Ammo\\Expanse-Torpedo",
+                VisualProbability = 1f,
+                ShieldHitDraw = false,
                 Particles = new AmmoParticleDef
                 {
                     Ammo = new ParticleDef
                     {
-                        Name = "K_SA_GaussProjectile", //ShipWelderArc
+                        Name = "Expanse_Trail", //ShipWelderArc
                         Offset = Vector(x: 0, y: 0, z: 0),
                         Extras = new ParticleOptionDef
                         {
@@ -311,12 +311,12 @@ namespace Scripts
                     },
                     Hit = new ParticleDef
                     {
-                        Name = "",
-                        ApplyToShield = false,
+                        Name = "Exp_Spark_FCC",
+                        ApplyToShield = true,
                         Offset = Vector(x: 0, y: 0, z: 0),
                         Extras = new ParticleOptionDef
                         {
-                            Scale = 1,
+                            Scale = 1f,
                             HitPlayChance = 1f,
                         },
                     },
@@ -341,7 +341,7 @@ namespace Scripts
                         Enable = true,
                         Length = 5f, //
                         Width = 0.5f, //
-                        Color = Color(red: 0.1f, green: 0.3f, blue: 0.2f, alpha: 0.75f), // RBG 255 is Neon Glowing, 100 is Quite Bright.
+                        Color = Color(red: 1f, green: 3f, blue: 2f, alpha: 0.75f), // RBG 255 is Neon Glowing, 100 is Quite Bright.
                         VisualFadeStart = 0, // Number of ticks the weapon has been firing before projectiles begin to fade their color
                         VisualFadeEnd = 0, // How many ticks after fade began before it will be invisible.
                         Textures = new[] {// WeaponLaser, ProjectileTrailLine, WarpBubble, etc..
@@ -373,7 +373,7 @@ namespace Scripts
                         },
                         TextureMode = Normal,
                         DecayTime = 1, // In Ticks. 1 = 1 Additional Tracer generated per motion, 33 is 33 lines drawn per projectile. Keep this number low.
-                        Color = Color(red: 0.3f, green: 1.1f, blue: 0.2f, alpha: 0.2f),
+                        Color = Color(red: 3f, green: 11f, blue: 2f, alpha: 1f),
                         Back = false,
                         CustomWidth = 0,
                         UseWidthVariance = false,
@@ -573,7 +573,7 @@ namespace Scripts
                     NoVisuals = false,
                     NoSound = false,
                     ParticleScale = 0.25f,
-                    CustomParticle = "K_SA_Explosion_III", // Particle SubtypeID, from your Particle SBC
+                    CustomParticle = "", // Particle SubtypeID, from your Particle SBC
                     CustomSound = "K_SA_Gauss_Hit_A", // SubtypeID from your Audio SBC, not a filename
                     Shape = Diamond, // Round or Diamond
                 },
@@ -679,14 +679,14 @@ namespace Scripts
             },
             AmmoGraphics = new GraphicDef
             {
-                ModelName = "", // Model Path goes here.  "\\Models\\Ammo\\Starcore_Arrow_Missile_Large"
-                VisualProbability = 1f, // %
-                ShieldHitDraw = true,
+                ModelName = "\\Models\\Ammo\\Expanse-Torpedo",
+                VisualProbability = 1f,
+                ShieldHitDraw = false,
                 Particles = new AmmoParticleDef
                 {
                     Ammo = new ParticleDef
                     {
-                        Name = "K_SA_GaussProjectile", //ShipWelderArc
+                        Name = "Expanse_Trail", //ShipWelderArc
                         Offset = Vector(x: 0, y: 0, z: 0),
                         Extras = new ParticleOptionDef
                         {
@@ -695,12 +695,12 @@ namespace Scripts
                     },
                     Hit = new ParticleDef
                     {
-                        Name = "K_SA_Explosion_III",
+                        Name = "Exp_Spark_FCC",
                         ApplyToShield = true,
                         Offset = Vector(x: 0, y: 0, z: 0),
                         Extras = new ParticleOptionDef
                         {
-                            Scale = 2,
+                            Scale = 1f,
                             HitPlayChance = 1f,
                         },
                     },
@@ -725,7 +725,7 @@ namespace Scripts
                         Enable = true,
                         Length = 7f,
                         Width = 0.3f, //
-                        Color = Color(red: 0.1f, green: 0.1f, blue: 0f, alpha: 0.85f), // RBG 255 is Neon Glowing, 100 is Quite Bright.
+                        Color = Color(red: 10f, green: 10f, blue: 0f, alpha: 0.85f), // RBG 255 is Neon Glowing, 100 is Quite Bright.
                         VisualFadeStart = 30, // Number of ticks the weapon has been firing before projectiles begin to fade their color
                         VisualFadeEnd = 20, // How many ticks after fade began before it will be invisible.
                         Textures = new[] {// WeaponLaser, ProjectileTrailLine, WarpBubble, etc..
@@ -749,7 +749,7 @@ namespace Scripts
                             SegmentLength = 15f, // Uses the values below.
                             SegmentGap = 0f, // Uses Tracer textures and values
                             Speed = 5f, // meters per second
-                            Color = Color(red: 0.1f, green: 0.2f, blue: 0.3f, alpha: 1f),
+                            Color = Color(red: 1f, green: 2f, blue: 3f, alpha: 1f),
                             WidthMultiplier = 1f,
                             Reverse = false,
                             UseLineVariance = true,
@@ -765,7 +765,7 @@ namespace Scripts
                         },
                         TextureMode = Normal,
                         DecayTime = 1, // In Ticks. 1 = 1 Additional Tracer generated per motion, 33 is 33 lines drawn per projectile. Keep this number low.
-                        Color = Color(red: 0.2f, green: 0.1f, blue: 0.1f, alpha: 0.75f),
+                        Color = Color(red: 2f, green: 1f, blue: 1f, alpha: 0.75f),
                         Back = false,
                         CustomWidth = 0,
                         UseWidthVariance = false,
