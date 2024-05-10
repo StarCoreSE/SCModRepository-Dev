@@ -25,11 +25,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - run: cd "${{ matrix.path }}"
+      #- run: cd "${{ matrix.path }}"
 
       - name: Get changed files
         id: changed-files
         uses: tj-actions/changed-files@v44
+        with:
+          path: ${{ matrix.path }}
       
       - name: List all changed files
         env:
