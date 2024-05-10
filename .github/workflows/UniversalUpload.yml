@@ -40,6 +40,8 @@ jobs:
           for file in ${ALL_CHANGED_FILES}; do
             echo "$file was changed"
           done
+
+      - if: ${ALL_CHANGED_FILES}.size() > 0
           
       - name: Delay
         run: sleep $((${{ strategy.job-index }} * 10))
