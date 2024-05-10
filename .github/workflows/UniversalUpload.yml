@@ -25,7 +25,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - run: cd ${{ matrix.path }}
+      - run: cd "${{ matrix.path }}"
 
       - name: Get changed files
         id: changed-files
