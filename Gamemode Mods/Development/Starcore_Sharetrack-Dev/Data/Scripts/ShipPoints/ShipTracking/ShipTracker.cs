@@ -203,6 +203,9 @@ namespace ShipPoints.ShipTracking
                         break;
                 }
             else if (block is IMyConveyor || block is IMyConveyorTube) blockDisplayName = "Conveyor";
+
+            if (blockDisplayName.Contains("Letter")) blockDisplayName = "Letter";
+            else if (blockDisplayName.Contains("Beam Block")) blockDisplayName = "Beam Block";
         }
 
 
@@ -387,12 +390,12 @@ namespace ShipPoints.ShipTracking
             {
                 var blockCounts = new Dictionary<string, int>();
                 foreach (var stats in _gridStats.Values)
-                foreach (var kvp in stats.SpecialBlockCounts)
-                {
-                    if (!blockCounts.ContainsKey(kvp.Key))
-                        blockCounts.Add(kvp.Key, 0);
-                    blockCounts[kvp.Key] += kvp.Value;
-                }
+                    foreach (var kvp in stats.SpecialBlockCounts)
+                    {
+                        if (!blockCounts.ContainsKey(kvp.Key))
+                            blockCounts.Add(kvp.Key, 0);
+                        blockCounts[kvp.Key] += kvp.Value;
+                    }
 
                 return blockCounts;
             }
@@ -520,12 +523,12 @@ namespace ShipPoints.ShipTracking
             {
                 var blockCounts = new Dictionary<string, int>();
                 foreach (var stats in _gridStats.Values)
-                foreach (var kvp in stats.WeaponCounts)
-                {
-                    if (!blockCounts.ContainsKey(kvp.Key))
-                        blockCounts.Add(kvp.Key, 0);
-                    blockCounts[kvp.Key] += kvp.Value;
-                }
+                    foreach (var kvp in stats.WeaponCounts)
+                    {
+                        if (!blockCounts.ContainsKey(kvp.Key))
+                            blockCounts.Add(kvp.Key, 0);
+                        blockCounts[kvp.Key] += kvp.Value;
+                    }
 
                 return blockCounts;
             }
