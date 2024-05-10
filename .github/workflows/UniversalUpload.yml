@@ -1,0 +1,56 @@
+name: Aristeas UniversalUpload Test
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4.1.4
+      - id: set-matrix
+        run: bash ModIdFinder.sh >> $GITHUB_OUTPUT
+  
+  workshop-upload:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4.1.4
+        with:
+          fetch-depth: 0
+
+      #- run: cd "${{ matrix.path }}"
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+          path: ${{ matrix.path }}
+      
+      - name: List all changed files
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          for file in ${ALL_CHANGED_FILES}; do
+            echo "$file was changed"
+          done
+          
+      - name: Delay
+        run: sleep $((${{ strategy.job-index }} * 10))
+        
+      - uses: AnarkisGaming/workshop@v1
+        with:
+          appID: 244850
+          login: true
+          publishedFileID: ${{ matrix.value }}
+          path: ${{ matrix.path }}
+          changelog: ${{ github.event.head_commit.message }}
+        env:
+          STEAM_ACCOUNT_NAME: ${{ secrets.accountname }}
+          STEAM_PASSWORD: ${{ secrets.password }}
