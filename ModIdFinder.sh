@@ -15,7 +15,6 @@ while read path; do
 		  
 		  for editedFile in "${arrIN[@]}"
 		  do
-			echo "Checking $editedFile"
 			if [[ $modPath == *$editedFile* ]] ; then
 				MODIDARR+=(\{\"value\":$modId,\"path\":\"$modPath\"\})
 				break
