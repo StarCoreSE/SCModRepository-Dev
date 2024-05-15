@@ -20,6 +20,7 @@ while read path; do
 				break
 			fi
 		  done
+		  
       fi
   done < "$path"
 done < allModDatas.txt

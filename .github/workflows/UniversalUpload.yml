@@ -26,7 +26,7 @@ jobs:
       #    done
 
       - id: set-matrix
-        run: bash ModIdFinder.sh ${{ join(steps.changed-files.outputs.all_changed_files, ',') }} >> $GITHUB_OUTPUT
+        run: bash ModIdFinder.sh ${{ join(steps.changed-files.outputs.all_changed_files) }} >> $GITHUB_OUTPUT
   
   workshop-upload:
     needs: setup
