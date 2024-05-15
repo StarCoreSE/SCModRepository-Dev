@@ -15,19 +15,19 @@ jobs:
       - id: set-matrix
         run: bash ModIdFinder.sh >> $GITHUB_OUTPUT
 
-  #- name: Get changed files
-  #      id: changed-files
-  #      uses: tj-actions/changed-files@v44
-  #      with:
-  #        path: ${{ matrix.path }}
-  #    
-  #    - name: List all changed files
-  #      env:
-  #        ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
-  #      run: |
-  #        for file in ${ALL_CHANGED_FILES}; do
-  #          echo "$file was changed"
-  #        done
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+         path: ${{ matrix.path }}
+      
+      - name: List all changed files
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          for file in ${ALL_CHANGED_FILES}; do
+            echo "$file was changed"
+          done
   
   workshop-upload:
     needs: setup
