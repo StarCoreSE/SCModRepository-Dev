@@ -15,7 +15,7 @@ while read path; do
 		  
 		  for editedFile in "${arrIN[@]}"
 		  do
-			if [[ $modPath == *$editedFile* ]] ; then
+			if [[ "./$editedFile" == "$modPathTmp"* ]] ; then
 				MODIDARR+=(\{\"value\":$modId,\"path\":\"$modPath\"\})
 				break
 			fi
@@ -31,3 +31,5 @@ for item in "${MODIDARR[@]}"; do
   delim=","
 done
 echo "matrix={\"include\":[$joined]}]"
+
+echo > allModDatas.txt
