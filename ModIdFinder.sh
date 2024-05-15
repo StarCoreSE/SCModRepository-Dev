@@ -11,7 +11,15 @@ while read path; do
           modId=${tmp%<*}
           modPathTmp=${path%/*}
           modPath=${modPathTmp// /\`}
-          MODIDARR+=(\{\"value\":$modId,\"path\":\"$modPath\"\})
+		  
+		  for editedFile in "$1"
+		  do
+			echo "Checking $editedFile"
+			if [[ $modPath == *$editedFile* ]] ; then
+				MODIDARR+=(\{\"value\":$modId,\"path\":\"$modPath\"\})
+				break
+			fi
+		  done
       fi
   done < "$path"
 done < allModDatas.txt
