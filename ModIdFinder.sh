@@ -1,5 +1,6 @@
 #!/bin/bash
 
+IFS=','; arrIN=($1); unset IFS;
 find . -type f -name "*.sbmi" >> ./allModDatas.txt
 
 MODIDARR=()
@@ -12,7 +13,7 @@ while read path; do
           modPathTmp=${path%/*}
           modPath=${modPathTmp// /\`}
 		  
-		  for editedFile in "$1"
+		  for editedFile in "${arrIN[@]}"
 		  do
 			echo "Checking $editedFile"
 			if [[ $modPath == *$editedFile* ]] ; then
