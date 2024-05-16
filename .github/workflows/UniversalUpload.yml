@@ -1,4 +1,4 @@
-name: Aristeas UniversalUpload Test
+name: Aristeas UniversalUpload
 on:
   workflow_dispatch:
   push:
