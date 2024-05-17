@@ -63,7 +63,9 @@ namespace ULTRALogger
         {
             if (_isRecording)
             {
+                MyAPIGateway.Utilities.ShowNotification($"Added new entity.{entity.EntityId.ToString("X")}", 1000);
                 var block = entity as IMyCubeBlock;
+
                 if (block != null)
                 {
                     var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
