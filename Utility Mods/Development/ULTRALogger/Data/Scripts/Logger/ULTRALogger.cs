@@ -11,9 +11,9 @@ using VRage.Utils;
 namespace ULTRALogger
 {
     [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation)]
-    public class Logger : MySessionComponentBase
+    public class ULTRALogger : MySessionComponentBase
     {
-        public static Logger Instance;
+        public static ULTRALogger Instance;
         private TextWriter _writer;
         private const string Extension = ".log";
         private bool _isRecording;
@@ -37,7 +37,7 @@ namespace ULTRALogger
             var fileName = $"ULTRALog_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}{Extension}";
             try
             {
-                _writer = MyAPIGateway.Utilities.WriteFileInWorldStorage(fileName, typeof(Logger));
+                _writer = MyAPIGateway.Utilities.WriteFileInWorldStorage(fileName, typeof(ULTRALogger));
                 _writer.WriteLine("Timestamp, BlockType, Position");
                 _isRecording = true;
                 MyAPIGateway.Utilities.ShowNotification("ULTRALogger started.", 10000);
