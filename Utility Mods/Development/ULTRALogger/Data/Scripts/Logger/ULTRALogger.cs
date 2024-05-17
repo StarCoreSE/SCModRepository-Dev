@@ -1,8 +1,10 @@
 ﻿using System;
 using System.IO;
+using Sandbox.Game;
 using Sandbox.ModAPI;
 using VRage.Game;
 using VRage.Game.Components;
+using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.Utils;
 
@@ -38,7 +40,8 @@ namespace ULTRALogger
                 _writer = MyAPIGateway.Utilities.WriteFileInWorldStorage(fileName, typeof(Logger));
                 _writer.WriteLine("Timestamp, BlockType, Position");
                 _isRecording = true;
-                MyAPIGateway.Utilities.ShowNotification("ULTRALogger started.");
+                MyAPIGateway.Utilities.ShowNotification("ULTRALogger started.", 10000);
+                MyVisualScriptLogicProvider.SendChatMessage($"Logger started at {DateTime.Now}.");
             }
             catch (Exception ex)
             {
@@ -58,14 +61,18 @@ namespace ULTRALogger
 
         private void OnEntityAdd(IMyEntity entity)
         {
-            if (_isRecording && entity is IMyCubeBlock block)
+            if (_isRecording)
             {
-                var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                var blockType = block.BlockDefinition.DisplayNameText;
-                var position = block.GetPosition();
+                var block = entity as IMyCubeBlock;
+                if (block != null)
+                {
+                    var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    var blockType = block.BlockDefinition.SubtypeId;
+                    var position = block.GetPosition();
 
-                _writer.WriteLine($"{timestamp}, {blockType}, {position}");
-                _writer.Flush();
+                    _writer.WriteLine($"{timestamp}, {blockType}, {position}");
+                    _writer.Flush();
+                }
             }
         }
     }
