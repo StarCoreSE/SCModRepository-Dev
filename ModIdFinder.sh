@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Part of the UniversalUpload workflow, by Aristeas.
+# Don't touch this unless stuff breaks, everything's automatic.
+
 IFS=','; arrIN=($1); unset IFS;
 find . -type f -name "*.sbmi" >> ./allModDatas.txt
 
