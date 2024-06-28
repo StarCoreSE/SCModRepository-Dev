@@ -156,7 +156,7 @@ namespace Scripts {
                 Graphics = new HardPointParticleDef {
 
                     Effect1 = new ParticleDef {
-                        Name = "", // Smoke_LargeGunShot
+                        Name = "Tait_Stole_Muzzle_Medium", // Smoke_LargeGunShot
                         Color = Color(red: 1, green: 1, blue: 1, alpha: 1),
                         Offset = Vector(x: 0, y: 0, z: 0),
 
