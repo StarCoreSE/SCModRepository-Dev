@@ -430,7 +430,7 @@ namespace Scripts
             Health = 200f, // How much damage the projectile can take from other projectiles (base of 1 per hit) before dying; 0 disables this and makes the projectile untargetable.
             BackKickForce = 0f, // Recoil. This is applied to the Parent Grid.
             DecayPerShot = 0f, // Damage to the firing weapon itself.
-            HardPointUsable = true, // Whether this is a primary ammo type fired directly by the turret. Set to false if this is a shrapnel ammoType and you don't want the turret to be able to select it directly.
+            HardPointUsable = false, // Whether this is a primary ammo type fired directly by the turret. Set to false if this is a shrapnel ammoType and you don't want the turret to be able to select it directly.
             EnergyMagazineSize = 0, // For energy weapons, how many shots to fire before reloading.
             IgnoreWater = true, // Whether the projectile should be able to penetrate water when using WaterMod.
             IgnoreVoxels = false, // Whether the projectile should be able to penetrate voxels.
@@ -507,7 +507,7 @@ namespace Scripts
                 },
                 Grids = new GridSizeDef
                 {
-                    Large = 1.25f, // Multiplier for damage against large grids.
+                    Large = 1f, // Multiplier for damage against large grids.
                     Small = -1f, // Multiplier for damage against small grids.
                 },
                 Armor = new ArmorDef
@@ -515,11 +515,11 @@ namespace Scripts
                     Armor = -1f, // Multiplier for damage against all armor. This is multiplied with the specific armor type multiplier (light, heavy).
                     Light = -1f, // Multiplier for damage against light armor.
                     Heavy = 2.5f, // Multiplier for damage against heavy armor.
-                    NonArmor = 1.5f, // Multiplier for damage against every else.
+                    NonArmor = 0.25f, // Multiplier for damage against every else.
                 },
                 Shields = new ShieldDef
                 {
-                    Modifier = 1f, // Multiplier for damage against shields.
+                    Modifier = 0.1f, // Multiplier for damage against shields.
                     Type = Default, // Damage vs healing against shields; Default, Heal
                     BypassModifier = -1f, // If greater than zero, the percentage of damage that will penetrate the shield.
                 },
@@ -668,8 +668,8 @@ namespace Scripts
                 Smarts = new SmartsDef
                 {
                     Inaccuracy = 0.5f, // 0 is perfect, hit accuracy will be a random num of meters between 0 and this value.
-                    Aggressiveness = 10f, // controls how responsive tracking is.
-                    MaxLateralThrust = 20f, // controls how sharp the trajectile may turn
+                    Aggressiveness = 4f, // controls how responsive tracking is.
+                    MaxLateralThrust = 0.2f, // controls how sharp the trajectile may turn
                     TrackingDelay = 0, // Measured in Shape diameter units traveled.
                     MaxChaseTime = 0, // Measured in game ticks (6 = 100ms, 60 = 1 seconds, etc..).
                     OverideTarget = false, // when set to true ammo picks its own target, does not use hardpoint's.
