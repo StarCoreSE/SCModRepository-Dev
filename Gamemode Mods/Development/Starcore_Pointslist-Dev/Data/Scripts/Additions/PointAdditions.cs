@@ -299,7 +299,7 @@ namespace ShipPoints
             ["MA_Blister30"] = 100,
             ["MA_Blister32"] = 100,
             ["MA_Meatball"] = 200,
-            ["MA_Guardian"] = 770,
+            ["MA_Guardian"] = 850,
 
             ["MA_SideBooster_Small"] = 100,
             ["Static30mm"] = 100,
@@ -330,8 +330,7 @@ namespace ShipPoints
             ["Wheel1x1"] = 35000,
 
             ["K_SA_Gauss_AMSIIC"] = 350,
-            //["SA_HMI_Erebos"] = 300,
-            ["SA_HMI_Erebos"] = 35000,
+            ["SA_HMI_Erebos"] = 300,
 
             ["LargeBlockRadioAntenna"] = 5,
             ["LargeBlockCompactRadioAntenna"] = 5,
@@ -531,7 +530,7 @@ namespace ShipPoints
             ["MacroTurret"] = 300,
             ["MacroLightTurret"] = 150,
             ["MacroHeavyTurret"] = 450,
-            ["GothicTorp"] = 300,
+            ["GothicTorp"] = 250,
             ["AegisFlakTurret"] = 120,
 
 
@@ -570,15 +569,17 @@ namespace ShipPoints
             ["Starcore_RWR_Projectiles"] = 5,
             ["SC_Flare"] = 50,
             ["SI_Field_Gen"] = 50,
+	    ["FieldGen_Core"] = 50,
+    	    ["FieldGen_Capacity_Upgrade"] = 50,
             ["SELtdLargeNanobotBuildAndRepairSystem"] = 50,
             ["PM_LG_BLASTPLATE_BLASTPLATE"] = 100,
-            ["REINFORCED_BLASTPLATE"] = 100,
-            ["ACTIVE_BLASTPLATE"] = 100,
-            ["3x3_Blastplate_A"] = 25,
-            ["3x3_Blastplate_B"] = 25,
-            ["3x3_Blastplate_C"] = 25,
-            ["2x4_Blastplate"] = 25,
-            ["GIGA_BLASTPLATE"] = 1000,
+            ["REINFORCED_BLASTPLATE"] = 105,
+            ["ACTIVE_BLASTPLATE"] = 105,
+            ["3x3_Blastplate_A"] = 35,
+            ["3x3_Blastplate_B"] = 35,
+            ["3x3_Blastplate_C"] = 35,
+            ["2x4_Blastplate"] = 35,
+            ["GIGA_BLASTPLATE"] = 350,
 
             ["GravityGenerator"] = 0,
             ["SpaceBallSmall"] = 50,
@@ -592,10 +593,10 @@ namespace ShipPoints
             ["Cat_BadModder"] = 22,
             ["APE_Strong"] = 200,
             ["GoalieCasemate"] = 175,
-            ["Reaver_Coilgun"] = 125,
-            ["Assault_Coil_Turret"] = 125,
-            ["Priest_Block"] = 125,
-            ["PriestReskin_Block"] = 125,
+            ["Reaver_Coilgun"] = 115,
+            ["Assault_Coil_Turret"] = 115,
+            ["Priest_Block"] = 100,
+            ["PriestReskin_Block"] = 100,
             ["DualSnubLaserTurret"] = 150,
             ["DualPulseLaserTurret"] = 150,
             ["HeavyCarronade_5x5_Turret"] = 600,
@@ -659,38 +660,41 @@ namespace ShipPoints
 
 
             ["Cat_Fletcher_Subtypes"] = 23,
-            ["381mmDualR"] = 325,
-            ["381mmDualNR"] = 325,
-            ["380mmMLE1935"] = 400,
+            ["381mmDualR"] = 350,
+            ["381mmDualNR"] = 350,
+            ["380mmMLE1935"] = 350,
             ["15cmSKC28R"] = 175,
             ["15cmSKC28NR"] = 175,
             ["128mmL45"] = 200,
             ["128mmSKC34"] = 250,
-            ["127mmMk12"] = 175,
-            ["127mmMk24"] = 175,
-            ["127mmMk32"] = 250,
+            ["127mmMk12"] = 150,
+            ["127mmMk24"] = 150,
+            ["127mmMk32"] = 150,
             ["127mmMk56"] = 350,
             ["105mmTwin"] = 100,
             ["PomPomMain"] = 75,
             ["150mmCasemate"] = 150,
             ["150mmCasemateTwin"] = 175,
-            ["BoforTwinRemodel"] = 50,
-            ["BoforSingleRemodel"] = 60,
-            ["QuadBofor"] = 75,
+            ["BoforTwinRemodel"] = 40,
+            ["BoforSingleRemodel"] = 20,
+            ["QuadBofor"] = 80,
             ["TorpTestBuidl"] = 350,
-            ["16InchTriple"] = 400,
+            ["16InchTriple"] = 350,
             ["15cmTbtsKC36T"] = 150,
             ["15cmTbtsKC36"] = 150,
-            ["203mmTwin"] = 165,
-            ["203mmQuad"] = 250,
+            ["203mmTwin"] = 200,
+            ["203mmTriple"] = 200,
             ["TorpBarbette"] = 500,
-            ["406alternate"] = 400,
+            ["406alternate"] = 350,
             ["Mk25Rangefinder"] = 10,
             ["6InchTriple"] = 200,
             ["20InchTwin"] = 600,
             ["Barbette1x1"] = 4,
             ["Barbette3x3"] = 36,
             ["Barbette5x5"] = 100,
+			["FAM2BrowningTurret"] = 35,
+			["OerlikonDual"] = 35,
+			["OerlikonMain"] = 35,
 
 
 
@@ -832,13 +836,16 @@ namespace ShipPoints
                     break;
                 case "Reinforced Blastplate":
                 case "Active Blastplate":
+                case "7x7 Basedplate":
+                    blockDisplayName = "Large Blastplate";
+                    costMultiplier = 0f;
+                    break;
                 case "Standard Blastplate A":
                 case "Standard Blastplate B":
                 case "Standard Blastplate C":
                 case "Elongated Blastplate":
-                case "7x7 Basedplate":
                     blockDisplayName = "Blastplate";
-                    costMultiplier = 1.00f;
+                    costMultiplier = 0f;
                     break;
                 case "[EXO] Taiidan":
                 case "[EXO] Taiidan Fighter Launch Rail":
@@ -852,7 +859,7 @@ namespace ShipPoints
                     break;
                 case "[40K] Gothic Torpedo Launcher":
                     blockDisplayName = "[40k] Gothic Torpedo Launcher";
-                    costMultiplier = 0.15f;
+                    costMultiplier = 0.1f;
                     break;
                 case "[MID] AX 'Spitfire' Light Rocket Turret":
                     blockDisplayName = "[MID] Spitfire Turret";
@@ -890,6 +897,7 @@ namespace ShipPoints
                 case "Shield Controller":
                 case "Shield Controller Table":
                 case "Structural Integrity Field Generator":
+		case "Structural Integrity Generator Core":
                     blockDisplayName = "Defensive Generator";
                     costMultiplier = 50.00f;
                     break;
