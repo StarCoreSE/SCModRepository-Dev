@@ -1,36 +1,27 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using CoreSystems.Api;
-using DefenseShields;
-using Draygo.API;
-using RelativeTopSpeed;
 using Sandbox.ModAPI;
-using ShipPoints.HeartNetworking;
-using ShipPoints.HeartNetworking.Custom;
-using ShipPoints.MatchTiming;
-using ShipPoints.ShipTracking;
+using StarCore.ShareTrack.API;
+using StarCore.ShareTrack.API.CoreSystem;
+using StarCore.ShareTrack.HeartNetworking;
+using StarCore.ShareTrack.HeartNetworking.Custom;
+using StarCore.ShareTrack.ShipTracking;
 using VRage;
 using VRage.Game.ModAPI;
 using VRage.Input;
 using VRageMath;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 
-namespace ShipPoints
+namespace StarCore.ShareTrack
 {
-    public class PointCheck
+    /// <summary>
+    /// Shift-M menu
+    /// </summary>
+    public class AllGridsList
     {
-        public enum MatchStateEnum
-        {
-            Stopped,
-            Active
-        }
 
-        public static PointCheck I;
-        public static MatchStateEnum MatchState;
-        public static bool AmTheCaptainNow;
-
+        public static AllGridsList I;
 
         public static Dictionary<string, int> PointValues = new Dictionary<string, int>();
 
@@ -40,57 +31,50 @@ namespace ShipPoints
         public static HudAPIv2.HUDMessage
             IntegretyMessage,
             TimerMessage,
-            Ticketmessage,
-            Problemmessage;
+            Ticketmessage;
 
         public static ShipTracker.NametagSettings NametagViewState = ShipTracker.NametagSettings.PlayerName;
-        public static int Delaytime = 60; //debug
 
-        private readonly Dictionary<string, int> _bp = new Dictionary<string, int>(); // TODO refactor info storage
-
+        private readonly Dictionary<string, int> _bp = new Dictionary<string, int>();
 
         private readonly Dictionary<MyKeys, Action> _keyAndActionPairs = new Dictionary<MyKeys, Action>
         {
+            [MyKeys.M] = () =>
             {
-                MyKeys.M, () =>
-                {
-                    var castGrid = RaycastGridFromCamera();
-                    if (castGrid == null)
-                        return;
+                var castGrid = RaycastGridFromCamera();
+                if (castGrid == null)
+                    return;
 
-                    if (!TrackingManager.I.IsGridTracked(castGrid))
-                        TrackingManager.I.TrackGrid(castGrid);
-                    else
-                        TrackingManager.I.UntrackGrid(castGrid);
-                }
+                if (!TrackingManager.I.IsGridTracked(castGrid))
+                    TrackingManager.I.TrackGrid(castGrid);
+                else
+                    TrackingManager.I.UntrackGrid(castGrid);
             },
+            [MyKeys.N] = () =>
             {
-                MyKeys.N, () =>
-                {
-                    IntegretyMessage.Visible = !IntegretyMessage.Visible;
-                    MyAPIGateway.Utilities.ShowNotification("ShipTracker: Hud visibility set to " +
-                                                            IntegretyMessage.Visible);
-                }
+                IntegretyMessage.Visible = !IntegretyMessage.Visible;
+                MyAPIGateway.Utilities.ShowNotification("ShipTracker: Hud visibility set to " +
+                                                        IntegretyMessage.Visible);
             },
+            [MyKeys.B] = () =>
             {
-                MyKeys.B, () =>
-                {
-                    TimerMessage.Visible = !TimerMessage.Visible;
-                    Ticketmessage.Visible = !Ticketmessage.Visible;
-                    MyAPIGateway.Utilities.ShowNotification(
-                        "ShipTracker: Timer visibility set to " + TimerMessage.Visible);
-                }
+                TimerMessage.Visible = !TimerMessage.Visible;
+                Ticketmessage.Visible = !Ticketmessage.Visible;
+                MyAPIGateway.Utilities.ShowNotification(
+                    "ShipTracker: Timer visibility set to " + TimerMessage.Visible);
             },
+            [MyKeys.J] = () =>
             {
-                MyKeys.J, () =>
-                {
-                    NametagViewState++;
-                    if (NametagViewState > (ShipTracker.NametagSettings)3)
-                        NametagViewState = 0;
-                    MyAPIGateway.Utilities.ShowNotification(
-                        "ShipTracker: Nameplate visibility set to " + NametagViewState);
-                }
-            }
+                NametagViewState++;
+                if (NametagViewState > (ShipTracker.NametagSettings)3)
+                    NametagViewState = 0;
+                MyAPIGateway.Utilities.ShowNotification(
+                    "ShipTracker: Nameplate visibility set to " + NametagViewState);
+            },
+            [MyKeys.T] = () =>
+            {
+                I?._hudPointsList?.CycleViewState();
+            },
         };
 
         private readonly List<IMyPlayer> _listPlayers = new List<IMyPlayer>();
@@ -108,8 +92,6 @@ namespace ShipPoints
 
         private bool _awaitingTrackRequest = true;
         private Func<string, MyTuple<string, float>> _climbingCostFunction;
-
-        public string[] TeamNames = { "RED", "BLU" }; // TODO this doesn't actually do anything.
 
         private void ParsePointsDict(object message)
         {
@@ -134,42 +116,11 @@ namespace ShipPoints
             }
         }
 
-        public static void BeginMatch()
-        {
-            MatchTimer.I.Ticks = 0;
-            if (TimerMessage != null)
-                TimerMessage.Visible = true;
-            if (Ticketmessage != null)
-                Ticketmessage.Visible = true;
-            MatchState = MatchStateEnum.Active;
-            MatchTimer.I.Start();
-            MyAPIGateway.Utilities.ShowNotification("Commit die. Zone activates in " + Delaytime / 3600 +
-                                                    "m, match ends in " + MatchTimer.I.MatchDurationMinutes + "m.");
-            Log.Info("Match started!");
-
-            if (MyAPIGateway.Session.IsServer)
-                HeartNetwork.I.SendToEveryone(new GameStatePacket(I));
-        }
-
-        public static void EndMatch()
-        {
-            MatchTimer.I.Ticks = 0;
-            if (TimerMessage != null)
-                TimerMessage.Visible = false;
-            if (Ticketmessage != null)
-                Ticketmessage.Visible = false;
-            MatchState = MatchStateEnum.Stopped;
-            AmTheCaptainNow = false;
-            MatchTimer.I.Stop();
-            MyAPIGateway.Utilities.ShowNotification("Match Ended.");
-            Log.Info("Match Ended.");
-
-            if (MyAPIGateway.Session.IsServer)
-                HeartNetwork.I.SendToEveryone(new GameStatePacket(I));
-        }
-
         private void HudRegistered()
         {
+            // Avoid bootlock when opening world with autotracked grids.
+            TrackingManager.Init();
+
             _hudPointsList = new HudPointsList();
 
             IntegretyMessage = new HudAPIv2.HUDMessage(scale: 1.15f, font: "BI_SEOutlined",
@@ -190,22 +141,12 @@ namespace ShipPoints
                 Visible = false, //defaulted off?
                 InitialColor = Color.White
             };
-
-            Problemmessage = new HudAPIv2.HUDMessage(scale: 2f, font: "BI_SEOutlined", Message: new StringBuilder(""),
-                origin: new Vector2D(-.99, 0), hideHud: false, shadowing: true, blend: BlendTypeEnum.PostPP)
-            {
-                Visible = false, //defaulted off?
-                InitialColor = Color.White
-            };
         }
 
         private void HandleKeyInputs()
         {
             if (!MyAPIGateway.Input.IsAnyShiftKeyPressed())
                 return;
-
-            if (MyAPIGateway.Input.IsNewKeyPressed(MyKeys.T))
-                _hudPointsList?.CycleViewState();
 
             foreach (var pair in _keyAndActionPairs)
                 if (MyAPIGateway.Input.IsNewKeyPressed(pair.Key))
@@ -214,7 +155,18 @@ namespace ShipPoints
 
         private void UpdateTrackingData()
         {
-            if (MatchTimer.I.Ticks % 60 != 0 || IntegretyMessage == null || !TextHudApi.Heartbeat)
+            if (MasterSession.I.Ticks % 59 != 0)
+                return;
+
+            lock (TrackingManager.I.TrackedGrids)
+            {
+                foreach (var shipTracker in TrackingManager.I.TrackedGrids.Values)
+                {
+                    shipTracker.Update();
+                }
+            }
+
+            if (IntegretyMessage == null || !MasterSession.I.TextHudApi.Heartbeat)
                 return;
 
             var tt = new StringBuilder();
@@ -230,17 +182,14 @@ namespace ShipPoints
 
             MainTrackerUpdate(_ts, _m, _bp, _mbp, _pbp, _obp, _mobp);
 
-            // Match time
-            tt.Append("<color=orange>----                 <color=white>Match Time: ")
-                .Append(MatchTimer.I.CurrentMatchTime.ToString(@"mm\:ss"))
-                .Append('/')
-                .Append(MatchTimer.I.MatchDurationString)
-                .Append("                 <color=orange>----\n");
-
             TeamBpCalc(tt, _ts, _m, _bp, _mbp, _pbp, _obp, _mobp);
 
-            IntegretyMessage.Message.Clear();
-            IntegretyMessage.Message.Append(tt);
+            if (!IntegretyMessage.Message.Equals(tt))
+            {
+                IntegretyMessage.Message = tt;
+            }
+            
+            IntegretyMessage.Origin = new Vector2D(0.975 - IntegretyMessage.GetTextLength().X, IntegretyMessage.Origin.Y);
         }
 
 
@@ -250,9 +199,7 @@ namespace ShipPoints
         {
             foreach (var shipTracker in TrackingManager.I.TrackedGrids.Values)
             {
-                shipTracker.Update();
-
-                var fn = shipTracker.FactionName;
+                var fn = shipTracker.FactionName.Length > 6 ? shipTracker.FactionName.Substring(0, 6) : shipTracker.FactionName;
                 var o = shipTracker.OwnerName;
                 var nd = shipTracker.IsFunctional;
 
@@ -282,11 +229,16 @@ namespace ShipPoints
                 obp[fn] += shipTracker.OffensivePoints;
                 mobp[fn] += shipTracker.MovementPoints;
 
-                var g = shipTracker.WeaponCounts.Values.Sum();
+                var wep = 0;
+                foreach (var kvp in shipTracker.WeaponCounts)
+                {
+                    wep += kvp.Value;
+                }
+
                 var pwr = FormatPower(Math.Round(shipTracker.TotalPower, 1));
                 var ts2 = FormatThrust(Math.Round(shipTracker.TotalThrust, 2));
 
-                ts[fn].Add(CreateDisplayString(o, shipTracker, g, pwr, ts2));
+                ts[fn].Add(CreateDisplayString(o, shipTracker, wep, pwr, ts2));
             }
         }
 
@@ -301,7 +253,7 @@ namespace ShipPoints
             return thrustInMega > 1e2 ? $"{Math.Round(thrustInMega / 1e3, 2)}GN" : $"{thrustInMega}MN";
         }
 
-        private string CreateDisplayString(string ownerName, ShipTracker tracker, int g, string power, string thrust)
+        private string CreateDisplayString(string ownerName, ShipTracker tracker, int wep, string power, string thrust)
         {
             var ownerDisplay = ownerName != null
                 ? ownerName.Substring(0, Math.Min(ownerName.Length, 7))
@@ -313,10 +265,13 @@ namespace ShipPoints
             var shieldColor = shieldPercent <= 0
                 ? "red"
                 : $"{255},{255 - tracker.CurrentShieldHeat * 2.5f},{255 - tracker.CurrentShieldHeat * 2.5f}";
-            var weaponColor = g == 0 ? "red" : "orange";
+            var weaponColor = wep == 0 ? "red" : "Orange";
+
             var functionalColor = tracker.IsFunctional ? "white" : "red";
+            var integrityColor = integrityPercent >= 75 ? "White" : integrityPercent >= 50 ? "LightCoral" : integrityPercent >= 25 ? "IndianRed" : "FireBrick";
+
             return
-                $"<color={functionalColor}>{ownerDisplay,-8}{integrityPercent,3}%<color={functionalColor}> P:<color=orange>{power,3}<color={functionalColor}> T:<color=orange>{thrust,3}<color={functionalColor}> W:<color={weaponColor}>{g,3}<color={functionalColor}> S:<color={shieldColor}>{shieldPercent,3}%<color=white>";
+                $"<color={functionalColor}>{ownerDisplay,-8}<color={integrityColor}>{integrityPercent,3}%<color={functionalColor}> P:<color=orange>{power,3}<color={functionalColor}> T:<color=orange>{thrust,3}<color={functionalColor}> W:<color={weaponColor}>{wep}<color={functionalColor}> S:<color={shieldColor}>{shieldPercent,3}%<color=white>";
         }
 
 
@@ -324,23 +279,25 @@ namespace ShipPoints
             Dictionary<string, double> m, Dictionary<string, int> bp, Dictionary<string, int> mbp,
             Dictionary<string, int> pbp, Dictionary<string, int> obp, Dictionary<string, int> mobp)
         {
-            foreach (var x in trackedShip.Keys)
+            foreach (var faction in trackedShip.Keys)
             {
-                var msValue = m[x] / 1e6;
-                var tbi = 100f / bp[x];
+                if (trackedShip[faction] == null || trackedShip[faction].Count == 0) continue;
+
+                var msValue = m[faction] / 1e6;
+                var tbi = 100f / bp[faction];
 
                 tt.Append("<color=orange>---- ")
-                    .Append(x)
+                    .Append(faction)
                     .Append(" : ")
-                    .AppendFormat("{0:0.00}M : {1}bp <color=orange>[", msValue, bp[x]);
+                    .AppendFormat("{0:0.00}M : {1}bp <color=orange>[", msValue, bp[faction]);
 
-                tt.AppendFormat("<color=Red>{0}<color=white>%<color=orange>|", (int)(obp[x] * tbi + 0.5f))
-                    .AppendFormat("<color=Green>{0}<color=white>%<color=orange>|", (int)(pbp[x] * tbi + 0.5f))
-                    .AppendFormat("<color=DeepSkyBlue>{0}<color=white>%<color=orange>|", (int)(mobp[x] * tbi + 0.5f))
-                    .AppendFormat("<color=LightGray>{0}<color=white>%<color=orange>]", (int)(mbp[x] * tbi + 0.5f))
+                tt.AppendFormat("<color=Red>{0}<color=white>%<color=orange>|", (int)(obp[faction] * tbi + 0.5f))
+                    .AppendFormat("<color=Green>{0}<color=white>%<color=orange>|", (int)(pbp[faction] * tbi + 0.5f))
+                    .AppendFormat("<color=DeepSkyBlue>{0}<color=white>%<color=orange>|", (int)(mobp[faction] * tbi + 0.5f))
+                    .AppendFormat("<color=LightGray>{0}<color=white>%<color=orange>]", (int)(mbp[faction] * tbi + 0.5f))
                     .AppendLine(" ---------");
 
-                foreach (var y in trackedShip[x]) tt.AppendLine(y);
+                foreach (var y in trackedShip[faction]) tt.AppendLine(y);
             }
         }
 
@@ -368,7 +325,6 @@ namespace ShipPoints
 
         #region API Fields
 
-        public HudAPIv2 TextHudApi { get; private set; }
         public WcApi WcApi { get; private set; }
         public ShieldApi ShieldApi { get; private set; }
         public RtsApi RtsApi { get; private set; }
@@ -383,21 +339,20 @@ namespace ShipPoints
         public void Init()
         {
             I = this;
+            MasterSession.I.HudRegistered += HudRegistered;
 
-            MyAPIGateway.Utilities.ShowMessage("ShipPoints v3.2 - Control Zone",
-                "Aim at a grid and press Shift+T to show stats, " +
-                "Shift+M to track a grid, Shift+J to cycle nametag style. ");
+            MyAPIGateway.Utilities.ShowMessage("ShareTrack",
+                "Aim at a grid and press:" +
+                "\n- Shift+T to show grid stats." +
+                "\n- Shift+M to track a grid." +
+                "\n- Shift+J to cycle nametag style."
+                );
 
             MyAPIGateway.Utilities.RegisterMessageHandler(2546247, ParsePointsDict);
 
             // Check if the current instance is not a dedicated server
-            if (!MyAPIGateway.Utilities.IsDedicated)
-                // Initialize the sphere entities
-                // Initialize the text_api with the HUDRegistered callback
-                TextHudApi = new HudAPIv2(HudRegistered);
-
-            // Avoid bootlock when opening world with autotracked grids.
-            TrackingManager.Init();
+            if (MyAPIGateway.Utilities.IsDedicated)
+                TrackingManager.Init();
 
             // Initialize the WC_api and load it if it's not null
 
@@ -417,7 +372,6 @@ namespace ShipPoints
         {
             Log.Info("Start PointCheck.UnloadData()");
 
-            TextHudApi?.Unload();
             WcApi?.Unload();
             ShieldApi?.Unload();
             if (PointValues != null)
@@ -451,7 +405,7 @@ namespace ShipPoints
 
             try
             {
-                if (MatchTimer.I.Ticks % 60 == 0)
+                if (MasterSession.I.Ticks % 61 == 0)
                 {
                     AllPlayers.Clear();
                     MyAPIGateway.Multiplayer.Players.GetPlayers(_listPlayers, delegate(IMyPlayer p)
@@ -471,7 +425,7 @@ namespace ShipPoints
         public void Draw()
         {
             //if you are the server do nothing here
-            if (MyAPIGateway.Utilities.IsDedicated || !TextHudApi.Heartbeat)
+            if (MyAPIGateway.Utilities.IsDedicated || !MasterSession.I.TextHudApi.Heartbeat)
                 return;
             try
             {
@@ -489,31 +443,6 @@ namespace ShipPoints
             {
                 Log.Error($"Exception in Draw: {e}");
             }
-        }
-
-        public void ReportProblem(string issueMessage = "", bool sync = true)
-        {
-            if (issueMessage.Length > 50)
-                issueMessage = issueMessage.Substring(0, 50);
-
-            Problemmessage.Message.Clear();
-            Problemmessage.Message.Append(
-                "<color=red>A PROBLEM HAS BEEN REPORTED.\n<color=white>CHECK WITH BOTH TEAMS AND THEN TYPE '/st fixed' TO CLEAR THIS MESSAGE.");
-            if (issueMessage != "")
-                Problemmessage.Message.Append("\n" + issueMessage);
-            Problemmessage.Visible = true;
-
-            if (sync)
-                HeartNetwork.I.SendToEveryone(new ProblemReportPacket(true, issueMessage));
-        }
-
-        public void ResolvedProblem(bool sync = true)
-        {
-            Problemmessage.Message.Clear();
-            Problemmessage.Visible = false;
-
-            if (sync)
-                HeartNetwork.I.SendToEveryone(new ProblemReportPacket(false));
         }
 
         public static void ClimbingCostRename(ref string blockDisplayName, ref float climbingCostMultiplier)
